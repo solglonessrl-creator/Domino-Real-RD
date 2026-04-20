@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD — Pantalla de Perfil del Jugador
  * Stats, logros, historial, personalización
  */

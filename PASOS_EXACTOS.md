@@ -1,4 +1,4 @@
-﻿# 🚀 Dominó Real RD — PASOS EXACTOS PARA LANZAR
+# 🚀 Dominó Real RD — PASOS EXACTOS PARA LANZAR
 ## Lee esto de arriba a abajo y sigue en orden
 
 ---

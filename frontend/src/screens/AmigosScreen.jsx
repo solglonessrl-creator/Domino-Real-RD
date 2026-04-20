@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD — Pantalla de Amigos
  * Lista, buscar, invitar a partida, compartir código
  */

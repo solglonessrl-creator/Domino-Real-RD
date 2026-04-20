@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD - Pantalla Principal (Home)
  * Diseño inspirado en colores de la bandera dominicana
  * Azul (#002D62), Rojo (#CF142B), Blanco (#FFFFFF)

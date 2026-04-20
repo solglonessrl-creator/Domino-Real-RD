@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD — App.js Principal (React Native / Expo)
  * Navegación completa con todas las pantallas
  */

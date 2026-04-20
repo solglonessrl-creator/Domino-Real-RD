@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD — Login Screen (React Native)
  */
 

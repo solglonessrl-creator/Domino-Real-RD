@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD - App Principal
  * Router completo con todas las pantallas
  */

@@ -1,4 +1,4 @@
-﻿# 🎲 Dominó Real RD — Arquitectura Técnica Completa
+# 🎲 Dominó Real RD — Arquitectura Técnica Completa
 
 ## Visión General
 

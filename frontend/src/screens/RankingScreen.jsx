@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD — Pantalla de Ranking Global
  * Tabla de clasificación con ligas, ELO y filtro por país
  */

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD — Pantalla de Matchmaking
  * Animación de búsqueda de oponentes + cancelar
  */

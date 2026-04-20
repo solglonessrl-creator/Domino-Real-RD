@@ -1,4 +1,4 @@
-﻿# 📘 FACEBOOK — NIVEL PROFESIONAL PARA Domino Real RD
+# 📘 FACEBOOK — NIVEL PROFESIONAL PARA Domino Real RD
 ## Qué tiene Parchís Star que nosotros necesitamos implementar
 
 ---

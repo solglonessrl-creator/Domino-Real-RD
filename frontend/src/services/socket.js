@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD - Cliente WebSocket
  * Maneja la conexión en tiempo real con el servidor
  */

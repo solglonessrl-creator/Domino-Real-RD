@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD — Home Screen (React Native)
  * Versión nativa optimizada para Android/iOS
  */

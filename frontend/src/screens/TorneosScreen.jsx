@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD — Pantalla de Torneos con Bracket Visual
  */
 

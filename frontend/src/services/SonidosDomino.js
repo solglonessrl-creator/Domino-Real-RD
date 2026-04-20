@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD — Motor de Sonidos
  * Sonidos reales de dominó usando Web Audio API
  * No requiere archivos externos para los efectos básicos

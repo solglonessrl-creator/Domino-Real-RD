@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD - Tablero de Juego Principal
  * Componente React Native / React Web
  *

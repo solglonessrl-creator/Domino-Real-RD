@@ -1,4 +1,4 @@
-﻿# 🎲 Dominó Real RD — Inicio Rápido
+# 🎲 Dominó Real RD — Inicio Rápido
 
 ## Levantar el proyecto en 5 minutos
 

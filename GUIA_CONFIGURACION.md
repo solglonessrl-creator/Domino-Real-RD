@@ -1,4 +1,4 @@
-﻿# 🔧 Dominó Real RD — Guía Completa de Configuración
+# 🔧 Dominó Real RD — Guía Completa de Configuración
 ## Todo lo que necesitas configurar para lanzar la app
 
 ---

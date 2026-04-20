@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD — Pantalla de Tienda
  * Mesas, fichas, avatares, VIP, paquetes de monedas
  */
