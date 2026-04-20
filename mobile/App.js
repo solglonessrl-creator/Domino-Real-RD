@@ -20,7 +20,7 @@ import HomeScreenNative from './src/screens/HomeScreenNative';
 
 // ─── URL DEL SERVIDOR ────────────────────────────────────────
 // IMPORTANTE: Cambiar esto a tu URL de Railway cuando hagas deploy
-const SERVIDOR_URL = 'https://domino-real-rd.railway.app';
+const SERVIDOR_URL = 'https://domino-real-rd-production.up.railway.app';
 // Para pruebas locales con tu IP:
 // const SERVIDOR_URL = 'http://192.168.1.XXX:3001';
 

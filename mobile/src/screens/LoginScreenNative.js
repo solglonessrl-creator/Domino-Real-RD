@@ -11,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'https://domino-real-rd.railway.app/api'; // Cambiar a tu URL
+const API_URL = 'https://domino-real-rd-production.up.railway.app/api'; // Cambiar a tu URL
 
 const COLORES = {
   azulRD: '#002D62', rojoRD: '#CF142B', blanco: '#FFFFFF',
