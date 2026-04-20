@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD - Tienda y Monetización
  * Venta de: Mesas, Fichas, Avatares, Emojis, VIP
  * Sistema de ads con recompensas

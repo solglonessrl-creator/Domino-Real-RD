@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD - Tests del Motor de Juego
  * Verifican las reglas reales del dominó dominicano
  */

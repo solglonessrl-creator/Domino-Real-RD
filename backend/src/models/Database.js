@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD — Capa de Acceso a Base de Datos
  * PostgreSQL con pool de conexiones
  */

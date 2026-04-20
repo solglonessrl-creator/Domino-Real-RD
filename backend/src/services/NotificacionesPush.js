@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD — Notificaciones Push (Firebase Cloud Messaging)
  * Notifica: inicio de torneo, invitación de amigo, bono disponible, nuevo reto
  */

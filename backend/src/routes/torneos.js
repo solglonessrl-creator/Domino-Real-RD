@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD - Sistema de Torneos
  * Torneos automáticos + privados creados por jugadores
  */

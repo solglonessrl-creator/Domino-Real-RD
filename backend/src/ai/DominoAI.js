@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD - Inteligencia Artificial
  * IA que juega como un dominicano real
  *

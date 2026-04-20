@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD - Matchmaking
  * Emparejamiento automático por ELO
  */

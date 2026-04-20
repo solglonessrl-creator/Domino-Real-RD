@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD — Servicio ELO Completo
  * Actualiza ELO, registra historial, verifica subida de liga, otorga logros
  */

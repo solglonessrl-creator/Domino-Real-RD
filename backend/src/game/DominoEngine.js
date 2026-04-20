@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD - Motor de Juego Principal
  * Implementa las reglas REALES del dominó dominicano doble-6
  *

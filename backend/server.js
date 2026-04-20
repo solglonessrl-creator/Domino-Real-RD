@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD - Servidor Principal
  * Node.js + Express + Socket.IO
  */

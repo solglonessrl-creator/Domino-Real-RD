@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD - WebSocket Handler
  * Maneja toda la comunicación en tiempo real del juego
  *

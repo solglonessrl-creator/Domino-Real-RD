@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD - Sistema Social
  * Amigos, invitaciones, compartir partidas, bonos de referidos
  */

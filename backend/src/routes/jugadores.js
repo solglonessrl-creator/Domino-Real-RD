@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD — Rutas de Jugadores
  * Perfil, personalización, notificaciones, historial
  */

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD — Sistema de Pagos con Stripe
  * Maneja: paquetes de monedas, VIP, torneos pagos
  */

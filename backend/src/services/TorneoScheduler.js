@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD — Scheduler de Torneos Automáticos
  * Crea torneos semanales, notifica participantes, genera brackets
  */

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD - Árbitro IA
  * Asistente árbitro con personalidad caribeña/dominicana
  *

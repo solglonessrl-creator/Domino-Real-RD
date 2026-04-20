@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD - Sistema de Ranking ELO
  * Ligas: Bronce → Plata → Oro → Diamante
  */

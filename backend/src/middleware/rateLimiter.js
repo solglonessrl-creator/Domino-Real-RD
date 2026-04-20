@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD — Rate Limiters específicos por ruta
  */
 

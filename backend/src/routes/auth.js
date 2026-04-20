@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domino Real RD - Autenticación
  * Soporte: Email, Facebook, Google, WhatsApp (invitado)
  */
