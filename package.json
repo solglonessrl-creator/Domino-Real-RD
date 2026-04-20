@@ -4,7 +4,6 @@
   "description": "Domino Real RD - El dominó dominicano del mundo",
   "scripts": {
     "start": "cd backend && node server.js",
-    "install-backend": "cd backend && npm install",
     "build": "cd backend && npm install"
   },
   "engines": {
