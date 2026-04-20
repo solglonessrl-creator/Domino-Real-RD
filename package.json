@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "description": "Domino Real RD - El dominó dominicano del mundo",
   "scripts": {
-    "start": "cd backend && node server.js",
-    "build": "cd backend && npm install"
+    "start": "cd backend && node server.js"
   },
   "engines": {
     "node": ">=18.0.0"
