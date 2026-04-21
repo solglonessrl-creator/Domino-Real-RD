@@ -65,8 +65,12 @@
       "androidCollapsedTitle": "Dominó Real RD"
     },
     "extra": {
-      "eas": { "projectId": "domino-real-rd" },
-      "firebaseProjectId": "domino-real-rd"
-    }
+      "eas": {
+        "projectId": "domino-real-rd"
+      },
+      "firebaseProjectId": "domino-real-rd",
+      "servidorUrl": "https://domino-real-rd-production.up.railway.app"
+    },
+    "owner": "dominorealrd"
   }
 }
