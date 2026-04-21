@@ -8,13 +8,18 @@ const router = express.Router();
 const { authMiddleware } = require('./auth');
 const { Jugadores, Inventario, Torneos } = require('../models/Database');
 
-// Stripe se inicializa solo si está configurado
+// Stripe se inicializa solo si la key es real (empieza con sk_)
 let stripe = null;
-if (process.env.STRIPE_SECRET_KEY) {
-  stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-  console.log('[Stripe] Pagos inicializados');
+const stripeKey = process.env.STRIPE_SECRET_KEY;
+if (stripeKey && (stripeKey.startsWith('sk_live_') || stripeKey.startsWith('sk_test_'))) {
+  try {
+    stripe = require('stripe')(stripeKey);
+    console.log('[Stripe] Pagos inicializados');
+  } catch (e) {
+    console.log('[Stripe] No se pudo inicializar:', e.message);
+  }
 } else {
-  console.log('[Stripe] STRIPE_SECRET_KEY no configurado — pagos deshabilitados');
+  console.log('[Stripe] Pagos deshabilitados — configura STRIPE_SECRET_KEY con una key real cuando estés listo');
 }
 
 const PRODUCTOS = {
