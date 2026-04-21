@@ -85,6 +85,31 @@ app.get('/health', (req, res) => {
   });
 });
 
+// ── DB DIAGNOSTIC (temporal) ──────────────────────────────────
+app.get('/db-check', async (req, res) => {
+  const { Pool } = require('pg');
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  });
+  try {
+    const r1 = await pool.query('SELECT NOW() as time');
+    const r2 = await pool.query(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'jugadores'
+      ORDER BY ordinal_position
+    `);
+    await pool.end();
+    res.json({
+      ok: true,
+      dbTime: r1.rows[0].time,
+      columnas_jugadores: r2.rows.map(r => r.column_name)
+    });
+  } catch (err) {
+    res.json({ ok: false, error: err.message, code: err.code });
+  }
+});
+
 // ── RAÍZ ─────────────────────────────────────────────────────
 app.get('/', (req, res) => {
   res.json({
