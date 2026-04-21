@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "780025762691",
+    "project_id": "domino-real-rd",
+    "storage_bucket": "domino-real-rd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:780025762691:android:3eb4b54ed73c6daf395cb6",
+        "android_client_info": {
+          "package_name": "Domino.RealRD"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyJDcuvy51SOoKYKLrsL-UIxSuGszUovs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

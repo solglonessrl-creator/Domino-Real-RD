@@ -183,25 +183,91 @@ export default function App() {
   };
 
   const solicitarPermisosNotificacion = async () => {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status === 'granted') {
-      const token = await Notifications.getExpoPushTokenAsync();
-      console.log('[Push] Token:', token.data);
-      // TODO: enviar token al servidor: /api/jugadores/fcm-token
-    }
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('domino_global', {
-        name: 'Dominó Real RD',
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: COLORES.azulRD
+    try {
+      // Crear canal de Android primero
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('domino_global', {
+          name: 'Dominó Real RD',
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: COLORES.azulRD,
+          sound: true
+        });
+      }
+
+      const { status: statusExistente } = await Notifications.getPermissionsAsync();
+      let statusFinal = statusExistente;
+
+      if (statusExistente !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        statusFinal = status;
+      }
+
+      if (statusFinal !== 'granted') {
+        console.log('[Push] Permisos denegados por el usuario');
+        return;
+      }
+
+      // Obtener Expo Push Token
+      const pushTokenData = await Notifications.getExpoPushTokenAsync({
+        projectId: 'domino-real-rd'
       });
+      const pushToken = pushTokenData.data;
+      console.log('[Push] Token obtenido:', pushToken);
+
+      // Enviar token al servidor
+      await registrarPushToken(pushToken);
+
+    } catch (err) {
+      console.error('[Push] Error al solicitar permisos:', err.message);
     }
   };
 
-  const onLoginExitoso = (jugadorData, token) => {
+  const registrarPushToken = async (pushToken) => {
+    try {
+      const token = await AsyncStorage.getItem('domino_token');
+      if (!token) return; // No hay sesión activa aún
+
+      const resp = await fetch(`${SERVIDOR_URL}/api/jugadores/push-token`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ pushToken })
+      });
+      const data = await resp.json();
+      if (data.exito) {
+        console.log('[Push] Token registrado en servidor ✅');
+      }
+    } catch (err) {
+      console.error('[Push] Error registrando token:', err.message);
+    }
+  };
+
+  const onLoginExitoso = async (jugadorData, token) => {
     setJugador(jugadorData);
     conectarSocket(token);
+    // Registrar push token ahora que tenemos sesión
+    try {
+      const pushTokenData = await Notifications.getExpoPushTokenAsync({
+        projectId: 'domino-real-rd'
+      });
+      if (pushTokenData?.data) {
+        const resp = await fetch(`${SERVIDOR_URL}/api/jugadores/push-token`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ pushToken: pushTokenData.data })
+        });
+        const result = await resp.json();
+        if (result.exito) console.log('[Push] Token registrado tras login ✅');
+      }
+    } catch (err) {
+      console.log('[Push] No se pudo registrar token tras login:', err.message);
+    }
   };
 
   const onLayoutRoot = useCallback(async () => {

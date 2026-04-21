@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const { authMiddleware } = require('./auth');
 const { db } = require('../models/Database');
+const push = require('../services/NotificacionesPush');
 
 // GET /social/amigos - Lista de amigos del jugador autenticado
 router.get('/amigos', authMiddleware, async (req, res) => {
@@ -90,6 +91,9 @@ router.post('/agregar-amigo', authMiddleware, async (req, res) => {
        JSON.stringify({ solicitanteId })]
     );
 
+    // Push notification al destinatario
+    push.notificarSolicitudAmistad(destinatarioId, { nombreSolicitante: solicitante.rows[0]?.nombre }).catch(() => {});
+
     res.json({ exito: true, mensaje: `¡Solicitud enviada a ${dest.rows[0].nombre}!`, estado: 'pendiente' });
   } catch (err) {
     console.error('[Social] Error agregar amigo:', err.message);
@@ -120,6 +124,8 @@ router.post('/responder-solicitud', authMiddleware, async (req, res) => {
          VALUES ($1,'amistad','¡Solicitud aceptada!',$2)`,
         [solicitud.rows[0].solicitante_id, `${receptor.rows[0]?.nombre} aceptó tu solicitud de amistad 🤝`]
       );
+      // Push notification al solicitante original
+      push.notificarAmistadAceptada(solicitud.rows[0].solicitante_id, { nombreAmigo: receptor.rows[0]?.nombre }).catch(() => {});
     }
 
     res.json({ exito: true, mensaje: aceptar ? '¡Ahora son amigos! 🤝' : 'Solicitud rechazada' });
@@ -142,6 +148,12 @@ router.post('/invitar-partida', authMiddleware, async (req, res) => {
        `${invitador.rows[0]?.nombre} te invita a una partida de dominó 🎲`,
        JSON.stringify({ roomId, invitadorId: req.jugador.id })]
     );
+
+    // Push notification inmediata al destinatario
+    push.notificarInvitacion(destinatarioId, {
+      nombreInvitador: invitador.rows[0]?.nombre,
+      roomId
+    }).catch(() => {});
 
     res.json({
       exito: true,

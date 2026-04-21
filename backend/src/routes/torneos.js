@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const { authMiddleware } = require('./auth');
 const { db } = require('../models/Database');
+const push = require('../services/NotificacionesPush');
 
 // Genera bracket de eliminación directa
 function generarBracket(participantes) {
