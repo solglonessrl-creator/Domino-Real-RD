@@ -35,3 +35,7 @@ Thumbs.db
 
 # ── Expo EAS ──────────────────────────────────────
 .eas/
+
+# ── Firebase (sensible — se maneja via EAS Secrets) ──
+mobile/google-services.json
+mobile/GoogleService-Info.plist
