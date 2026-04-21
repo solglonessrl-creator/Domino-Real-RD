@@ -5,6 +5,7 @@
     "version": "1.0.0",
     "scheme": "dominorealrd",
     "orientation": "portrait",
+    "androidNavigationBar": { "barStyle": "dark-content" },
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
@@ -19,7 +20,8 @@
       "buildNumber": "1",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Para cambiar tu foto de perfil",
-        "NSCameraUsageDescription": "Para tu foto de perfil"
+        "NSCameraUsageDescription": "Para tu foto de perfil",
+        "LSApplicationQueriesSchemes": ["fbapi", "fb-messenger-share-api", "fbauth2", "fbshareextension"]
       }
     },
     "android": {
@@ -38,6 +40,12 @@
       ]
     },
     "plugins": [
+      [
+        "expo-auth-session",
+        {
+          "extraSchemes": ["fb915990674746311"]
+        }
+      ],
       [
         "expo-notifications",
         {

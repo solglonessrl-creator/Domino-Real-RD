@@ -6,10 +6,14 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { Jugadores } = require('../models/Database');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'DOMINO_REAL_RD_secret_2024';
+const JWT_SECRET  = process.env.JWT_SECRET  || 'DOMINO_REAL_RD_secret_2024';
 const JWT_EXPIRES = '30d';
+const FB_APP_ID     = process.env.FACEBOOK_APP_ID;
+const FB_APP_SECRET = process.env.FACEBOOK_APP_SECRET;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
 function generarToken(jugador) {
   return jwt.sign(
@@ -115,12 +119,21 @@ router.post('/facebook', async (req, res) => {
     if (!accessToken && !socialId)
       return res.status(400).json({ exito: false, error: 'Se requiere accessToken de Facebook' });
 
-    // Verificar token con Facebook Graph API y obtener perfil real
+    // Verificar token con Facebook Graph API
+    // appsecret_proof = HMAC-SHA256(accessToken, APP_SECRET) — requerido por Meta en produccion
     let perfil = null;
     if (accessToken) {
-      const fbResp = await fetch(
-        `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`
-      );
+      let url = `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`;
+
+      if (FB_APP_SECRET) {
+        const appSecretProof = crypto
+          .createHmac('sha256', FB_APP_SECRET)
+          .update(accessToken)
+          .digest('hex');
+        url += `&appsecret_proof=${appSecretProof}`;
+      }
+
+      const fbResp = await fetch(url);
 
       if (!fbResp.ok)
         return res.status(401).json({ exito: false, error: 'Token de Facebook inválido o expirado' });
