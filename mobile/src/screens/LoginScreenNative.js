@@ -17,13 +17,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // ─── CONFIGURACIÓN ────────────────────────────────────────────
 const API_URL = 'https://domino-real-rd-production.up.railway.app/api';
 
-// Web Client ID: Firebase Console → Authentication → Sign-in method
-//                → Google → (expandir) → Web client ID
-// Android Client ID: Google Cloud Console → APIs & Services → Credentials
-//                    → OAuth 2.0 → Android client
-const GOOGLE_WEB_CLIENT_ID     = 'TU_WEB_CLIENT_ID.apps.googleusercontent.com';
-const GOOGLE_ANDROID_CLIENT_ID = 'TU_ANDROID_CLIENT_ID.apps.googleusercontent.com';
-const GOOGLE_IOS_CLIENT_ID     = 'TU_IOS_CLIENT_ID.apps.googleusercontent.com';
+// Client IDs extraídos del google-services.json del proyecto domino-realrd
+const GOOGLE_WEB_CLIENT_ID     = '898063876162-5p8jnjhrii0khivuok5koprp2hpg7sv3.apps.googleusercontent.com';
+const GOOGLE_ANDROID_CLIENT_ID = '898063876162-019re8ra3b4b1v2o3vjj2e5ck0pjk07o.apps.googleusercontent.com';
+const GOOGLE_IOS_CLIENT_ID     = null; // Agregar cuando se configure iOS
 
 // Necesario para que el browser de OAuth cierre correctamente
 WebBrowser.maybeCompleteAuthSession();
