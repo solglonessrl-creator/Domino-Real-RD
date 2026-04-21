@@ -1,6 +1,6 @@
 /**
  * Domino Real RD — Login Screen
- * Login con: Email/Password, Google OAuth, Invitado
+ * Login con: Email/Password, Google OAuth, Facebook OAuth, Invitado
  */
 
 import React, { useState, useEffect } from 'react';
@@ -11,18 +11,22 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
+import * as Google   from 'expo-auth-session/providers/google';
+import * as Facebook from 'expo-auth-session/providers/facebook';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ─── CONFIGURACIÓN ────────────────────────────────────────────
 const API_URL = 'https://domino-real-rd-production.up.railway.app/api';
 
-// Client IDs extraídos del google-services.json del proyecto domino-realrd
+// Google — extraídos de google-services.json (domino-realrd)
 const GOOGLE_WEB_CLIENT_ID     = '898063876162-5p8jnjhrii0khivuok5koprp2hpg7sv3.apps.googleusercontent.com';
 const GOOGLE_ANDROID_CLIENT_ID = '898063876162-019re8ra3b4b1v2o3vjj2e5ck0pjk07o.apps.googleusercontent.com';
-const GOOGLE_IOS_CLIENT_ID     = null; // Agregar cuando se configure iOS
+const GOOGLE_IOS_CLIENT_ID     = null;
 
-// Necesario para que el browser de OAuth cierre correctamente
+// Facebook — App ID de developers.facebook.com
+const FACEBOOK_APP_ID = '915990674746311';
+
+// Cierra el browser de OAuth correctamente al volver a la app
 WebBrowser.maybeCompleteAuthSession();
 // ─────────────────────────────────────────────────────────────
 
@@ -32,15 +36,16 @@ const COLORES = {
 };
 
 export default function LoginScreenNative({ navigation, onLoginExitoso }) {
-  const [email, setEmail]           = useState('');
-  const [password, setPassword]     = useState('');
-  const [nombre, setNombre]         = useState('');
+  const [email, setEmail]               = useState('');
+  const [password, setPassword]         = useState('');
+  const [nombre, setNombre]             = useState('');
   const [modoRegistro, setModoRegistro] = useState(false);
-  const [cargando, setCargando]     = useState(false);
-  const [cargandoGoogle, setCargandoGoogle] = useState(false);
+  const [cargando, setCargando]         = useState(false);
+  const [cargandoGoogle, setCargandoGoogle]     = useState(false);
+  const [cargandoFacebook, setCargandoFacebook] = useState(false);
 
-  // ── GOOGLE AUTH SESSION ──────────────────────────────────────
-  const [request, response, promptAsync] = Google.useAuthRequest({
+  // ── GOOGLE AUTH ──────────────────────────────────────────────
+  const [googleRequest, googleResponse, googlePrompt] = Google.useAuthRequest({
     webClientId:     GOOGLE_WEB_CLIENT_ID,
     androidClientId: GOOGLE_ANDROID_CLIENT_ID,
     iosClientId:     GOOGLE_IOS_CLIENT_ID,
@@ -48,27 +53,24 @@ export default function LoginScreenNative({ navigation, onLoginExitoso }) {
   });
 
   useEffect(() => {
-    if (response?.type === 'success') {
-      manejarRespuestaGoogle(response.authentication);
-    } else if (response?.type === 'error') {
+    if (googleResponse?.type === 'success') {
+      manejarRespuestaGoogle(googleResponse.authentication);
+    } else if (googleResponse?.type === 'error') {
       setCargandoGoogle(false);
       Alert.alert('❌ Error', 'No se pudo completar el login con Google');
-    } else if (response?.type === 'dismiss') {
+    } else if (googleResponse?.type === 'dismiss') {
       setCargandoGoogle(false);
     }
-  }, [response]);
+  }, [googleResponse]);
 
   const manejarRespuestaGoogle = async (authentication) => {
     try {
-      // Obtener perfil de Google con el access token
       const perfilResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${authentication.accessToken}` }
       });
       const perfil = await perfilResp.json();
+      if (!perfil.sub) throw new Error('No se obtuvo perfil de Google');
 
-      if (!perfil.sub) throw new Error('No se obtuvo información del perfil de Google');
-
-      // Enviar al backend para crear/autenticar el jugador
       const resp = await fetch(`${API_URL}/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -78,19 +80,14 @@ export default function LoginScreenNative({ navigation, onLoginExitoso }) {
           email:       perfil.email,
           foto:        perfil.picture,
           accessToken: authentication.accessToken,
-          pais:        'RD'
+          pais: 'RD'
         })
       });
-
       const data = await resp.json();
-      if (!data.exito) throw new Error(data.error || 'Error en el servidor');
+      if (!data.exito) throw new Error(data.error || 'Error en servidor');
 
-      await AsyncStorage.setItem('domino_token',   data.token);
-      await AsyncStorage.setItem('domino_jugador', JSON.stringify(data.jugador));
-
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await guardarSesion(data);
       onLoginExitoso(data.jugador, data.token);
-
     } catch (err) {
       Alert.alert('❌ Error con Google', err.message);
     } finally {
@@ -99,22 +96,80 @@ export default function LoginScreenNative({ navigation, onLoginExitoso }) {
   };
 
   const handleGoogle = async () => {
-    if (!request) {
-      return Alert.alert(
-        '⚙️ Configuración pendiente',
-        'Agrega los Client IDs de Google en LoginScreenNative.js para activar este login.'
-      );
-    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setCargandoGoogle(true);
-    await promptAsync();
+    await googlePrompt();
+  };
+
+  // ── FACEBOOK AUTH ────────────────────────────────────────────
+  const [fbRequest, fbResponse, fbPrompt] = Facebook.useAuthRequest({
+    clientId: FACEBOOK_APP_ID,
+    scopes: ['public_profile', 'email'],
+  });
+
+  useEffect(() => {
+    if (fbResponse?.type === 'success') {
+      manejarRespuestaFacebook(fbResponse.authentication);
+    } else if (fbResponse?.type === 'error') {
+      setCargandoFacebook(false);
+      Alert.alert('❌ Error', 'No se pudo completar el login con Facebook');
+    } else if (fbResponse?.type === 'dismiss') {
+      setCargandoFacebook(false);
+    }
+  }, [fbResponse]);
+
+  const manejarRespuestaFacebook = async (authentication) => {
+    try {
+      // Obtener perfil de Facebook con el access token
+      const perfilResp = await fetch(
+        `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${authentication.accessToken}`
+      );
+      const perfil = await perfilResp.json();
+      if (!perfil.id) throw new Error('No se obtuvo perfil de Facebook');
+
+      // Enviar al backend para crear/autenticar
+      const resp = await fetch(`${API_URL}/auth/facebook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          socialId:    perfil.id,
+          nombre:      perfil.name,
+          email:       perfil.email,
+          foto:        perfil.picture?.data?.url,
+          accessToken: authentication.accessToken,
+          pais: 'RD'
+        })
+      });
+      const data = await resp.json();
+      if (!data.exito) throw new Error(data.error || 'Error en servidor');
+
+      await guardarSesion(data);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onLoginExitoso(data.jugador, data.token);
+    } catch (err) {
+      Alert.alert('❌ Error con Facebook', err.message);
+    } finally {
+      setCargandoFacebook(false);
+    }
+  };
+
+  const handleFacebook = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setCargandoFacebook(true);
+    await fbPrompt();
+  };
+
+  // ── HELPERS ──────────────────────────────────────────────────
+  const guardarSesion = async (data) => {
+    await AsyncStorage.setItem('domino_token',   data.token);
+    await AsyncStorage.setItem('domino_jugador', JSON.stringify(data.jugador));
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   // ── EMAIL LOGIN / REGISTRO ───────────────────────────────────
   const handleLogin = async () => {
     if (!email.trim() || !password.trim())
       return Alert.alert('⚠️ Error', 'Completa todos los campos');
-
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCargando(true);
     try {
@@ -125,10 +180,7 @@ export default function LoginScreenNative({ navigation, onLoginExitoso }) {
       });
       const data = await resp.json();
       if (!data.exito) throw new Error(data.error);
-
-      await AsyncStorage.setItem('domino_token',   data.token);
-      await AsyncStorage.setItem('domino_jugador', JSON.stringify(data.jugador));
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await guardarSesion(data);
       onLoginExitoso(data.jugador, data.token);
     } catch (err) {
       Alert.alert('❌ Error', err.message || 'No se pudo iniciar sesión');
@@ -142,7 +194,6 @@ export default function LoginScreenNative({ navigation, onLoginExitoso }) {
       return Alert.alert('⚠️ Error', 'Completa todos los campos');
     if (password.length < 6)
       return Alert.alert('⚠️ Error', 'La contraseña debe tener mínimo 6 caracteres');
-
     setCargando(true);
     try {
       const resp = await fetch(`${API_URL}/auth/registro`, {
@@ -152,10 +203,7 @@ export default function LoginScreenNative({ navigation, onLoginExitoso }) {
       });
       const data = await resp.json();
       if (!data.exito) throw new Error(data.error);
-
-      await AsyncStorage.setItem('domino_token',   data.token);
-      await AsyncStorage.setItem('domino_jugador', JSON.stringify(data.jugador));
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await guardarSesion(data);
       onLoginExitoso(data.jugador, data.token);
     } catch (err) {
       Alert.alert('❌ Error', err.message);
@@ -174,8 +222,7 @@ export default function LoginScreenNative({ navigation, onLoginExitoso }) {
       });
       const data = await resp.json();
       if (!data.exito) throw new Error(data.error);
-
-      await AsyncStorage.setItem('domino_token',   data.token);
+      await AsyncStorage.setItem('domino_token', data.token);
       onLoginExitoso(data.jugador, data.token);
     } catch {
       Alert.alert('Error', 'No se pudo conectar al servidor');
@@ -183,6 +230,8 @@ export default function LoginScreenNative({ navigation, onLoginExitoso }) {
       setCargando(false);
     }
   };
+
+  const bloqueado = cargando || cargandoGoogle || cargandoFacebook;
 
   // ── RENDER ───────────────────────────────────────────────────
   const inputStyle = {
@@ -216,9 +265,9 @@ export default function LoginScreenNative({ navigation, onLoginExitoso }) {
 
             {/* ── Botón Google ── */}
             <TouchableOpacity
-              style={[styles.botonSocial, styles.botonGoogle]}
+              style={[styles.botonSocial, styles.botonGoogle, bloqueado && { opacity: 0.6 }]}
               onPress={handleGoogle}
-              disabled={cargandoGoogle || cargando}
+              disabled={bloqueado}
               activeOpacity={0.85}
             >
               {cargandoGoogle ? (
@@ -233,17 +282,23 @@ export default function LoginScreenNative({ navigation, onLoginExitoso }) {
               )}
             </TouchableOpacity>
 
-            {/* ── Botón Facebook (próximamente) ── */}
+            {/* ── Botón Facebook ── */}
             <TouchableOpacity
-              style={[styles.botonSocial, styles.botonFacebook]}
-              onPress={() => Alert.alert('📘 Facebook', 'Login con Facebook disponible próximamente')}
-              disabled={cargando}
+              style={[styles.botonSocial, styles.botonFacebook, bloqueado && { opacity: 0.6 }]}
+              onPress={handleFacebook}
+              disabled={bloqueado}
               activeOpacity={0.85}
             >
-              <View style={styles.botonSocialInner}>
-                <Text style={styles.iconoFB}>f</Text>
-                <Text style={styles.botonSocialTexto}>Continuar con Facebook</Text>
-              </View>
+              {cargandoFacebook ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <View style={styles.botonSocialInner}>
+                  <Text style={styles.iconoFB}>f</Text>
+                  <Text style={styles.botonSocialTexto}>
+                    Continuar con Facebook
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
 
             {/* Divisor */}
@@ -253,7 +308,7 @@ export default function LoginScreenNative({ navigation, onLoginExitoso }) {
               <View style={styles.lineaDivisor} />
             </View>
 
-            {/* ── Campos email/password ── */}
+            {/* ── Campos ── */}
             {modoRegistro && (
               <TextInput
                 style={inputStyle}
@@ -286,11 +341,11 @@ export default function LoginScreenNative({ navigation, onLoginExitoso }) {
               secureTextEntry
             />
 
-            {/* Botón principal email */}
+            {/* Botón principal */}
             <TouchableOpacity
               onPress={modoRegistro ? handleRegistro : handleLogin}
-              disabled={cargando || cargandoGoogle}
-              style={[styles.botonPrincipal, (cargando || cargandoGoogle) && { opacity: 0.7 }]}
+              disabled={bloqueado}
+              style={[styles.botonPrincipal, bloqueado && { opacity: 0.7 }]}
               activeOpacity={0.85}
             >
               {cargando
@@ -301,7 +356,7 @@ export default function LoginScreenNative({ navigation, onLoginExitoso }) {
               }
             </TouchableOpacity>
 
-            {/* Cambiar entre login/registro */}
+            {/* Cambiar modo */}
             <TouchableOpacity
               onPress={() => { setModoRegistro(!modoRegistro); setEmail(''); setPassword(''); setNombre(''); }}
               style={{ marginVertical: 12 }}
@@ -316,8 +371,8 @@ export default function LoginScreenNative({ navigation, onLoginExitoso }) {
             {/* Invitado */}
             <TouchableOpacity
               onPress={handleInvitado}
-              disabled={cargando || cargandoGoogle}
-              style={styles.botonInvitado}
+              disabled={bloqueado}
+              style={[styles.botonInvitado, bloqueado && { opacity: 0.6 }]}
               activeOpacity={0.8}
             >
               <Text style={styles.botonInvitadoTexto}>👤  Jugar como Invitado</Text>
@@ -326,7 +381,10 @@ export default function LoginScreenNative({ navigation, onLoginExitoso }) {
           </View>
 
           <Text style={styles.terminos}>
-            Al continuar aceptas nuestros Términos de Servicio y Política de Privacidad
+            Al continuar aceptas nuestros{' '}
+            <Text style={{ color: COLORES.oro }}>Términos de Servicio</Text>
+            {' '}y{' '}
+            <Text style={{ color: COLORES.oro }}>Política de Privacidad</Text>
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -361,18 +419,14 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.2,
     shadowRadius: 6, elevation: 3
   },
-  botonGoogle: { backgroundColor: '#FFFFFF' },
+  botonGoogle:   { backgroundColor: '#FFFFFF' },
   botonFacebook: { backgroundColor: '#1877F2' },
-  botonSocialInner: {
-    flexDirection: 'row', alignItems: 'center', gap: 10
-  },
+  botonSocialInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   iconoGoogle: {
-    fontSize: 18, fontWeight: 'bold', color: '#4285F4',
-    width: 22, textAlign: 'center'
+    fontSize: 18, fontWeight: 'bold', color: '#4285F4', width: 22, textAlign: 'center'
   },
   iconoFB: {
-    fontSize: 20, fontWeight: 'bold', color: '#FFFFFF',
-    width: 22, textAlign: 'center'
+    fontSize: 20, fontWeight: 'bold', color: '#FFFFFF', width: 22, textAlign: 'center'
   },
   botonSocialTexto: { color: '#FFF', fontSize: 15, fontWeight: '600' },
   divisor: { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },

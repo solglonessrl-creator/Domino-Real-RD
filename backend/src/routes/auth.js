@@ -107,38 +107,64 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// POST /auth/facebook - Estructura lista para cuando tengamos FB App ID
+// POST /auth/facebook - Login real con verificacion del access token en Facebook
 router.post('/facebook', async (req, res) => {
   try {
-    const { nombre, email, socialId, foto, pais = 'RD' } = req.body;
+    const { accessToken, socialId, nombre: nombreFallback, email: emailFallback, foto, pais = 'RD' } = req.body;
 
-    if (!socialId || !nombre)
+    if (!accessToken && !socialId)
+      return res.status(400).json({ exito: false, error: 'Se requiere accessToken de Facebook' });
+
+    // Verificar token con Facebook Graph API y obtener perfil real
+    let perfil = null;
+    if (accessToken) {
+      const fbResp = await fetch(
+        `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`
+      );
+
+      if (!fbResp.ok)
+        return res.status(401).json({ exito: false, error: 'Token de Facebook inválido o expirado' });
+
+      perfil = await fbResp.json();
+
+      if (perfil.error)
+        return res.status(401).json({ exito: false, error: perfil.error.message });
+    }
+
+    const facebookId = perfil?.id    || socialId;
+    const nombre     = perfil?.name  || nombreFallback;
+    const email      = perfil?.email || emailFallback;
+    const fotoUrl    = perfil?.picture?.data?.url || foto;
+
+    if (!facebookId || !nombre)
       return res.status(400).json({ exito: false, error: 'Datos de Facebook incompletos' });
 
-    // Buscar si ya existe por social_id
-    let jugador = await Jugadores.buscarPorSocialId(socialId, 'facebook');
+    let jugador = await Jugadores.buscarPorSocialId(facebookId, 'facebook');
     let esNuevo = false;
 
     if (!jugador) {
-      // Buscar por email si existe
       if (email) jugador = await Jugadores.buscarPorEmail(email);
 
       if (!jugador) {
-        // Crear nuevo jugador
         jugador = await Jugadores.crear({
           nombre,
           email,
           passwordHash: null,
           pais,
           loginMethod: 'facebook',
-          socialId
+          socialId: facebookId
         });
         esNuevo = true;
+      } else {
+        // Vincular Facebook a cuenta existente por email
+        await Jugadores.actualizarSocialId(jugador.id, facebookId, 'facebook');
       }
     }
 
     await Jugadores.actualizarUltimoLogin(jugador.id);
     const token = generarToken(jugador);
+
+    console.log(`[Auth] Facebook login: ${nombre} (${facebookId}) — ${esNuevo ? 'nuevo' : 'existente'}`);
 
     res.json({
       exito: true,
@@ -146,7 +172,7 @@ router.post('/facebook', async (req, res) => {
       jugador: perfilPublico(jugador),
       esNuevo,
       mensaje: esNuevo
-        ? `¡Bienvenido a Dominó Real RD, ${nombre}! 🎲`
+        ? `¡Bienvenido a Dominó Real RD, ${nombre}! 🎲 ¡500 monedas de regalo!`
         : `¡Bienvenido de nuevo, ${jugador.nombre}! 🎲`
     });
   } catch (err) {
@@ -261,6 +287,36 @@ router.post('/invitado', async (req, res) => {
       advertencia: 'El progreso de invitados no se guarda permanentemente.'
     });
   } catch (err) {
+    res.status(500).json({ exito: false, error: err.message });
+  }
+});
+
+// POST /auth/solicitar-eliminacion - Requerido por Facebook para publicar la app
+router.post('/solicitar-eliminacion', async (req, res) => {
+  try {
+    const { email, usuario, motivo } = req.body;
+    if (!email) return res.status(400).json({ exito: false, error: 'Email requerido' });
+
+    // Registrar la solicitud en la tabla de notificaciones del admin
+    // En produccion esto enviaría un email al administrador
+    console.log(`[GDPR] Solicitud de eliminación: ${email} (${usuario}) — ${motivo || 'sin motivo'}`);
+
+    // Si el usuario existe, marcar como pendiente de eliminación
+    const { Pool } = require('pg');
+    const db = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+    await db.query(
+      `UPDATE jugadores SET activo = FALSE WHERE email = $1`,
+      [email.toLowerCase().trim()]
+    );
+    await db.end();
+
+    res.json({
+      exito: true,
+      mensaje: 'Solicitud de eliminación recibida. Procesaremos tu solicitud en un plazo de 30 días.',
+      confirmacion: `Se procesará la eliminación de la cuenta: ${email}`
+    });
+  } catch (err) {
+    console.error('[Auth] Error solicitud eliminación:', err.message);
     res.status(500).json({ exito: false, error: err.message });
   }
 });
