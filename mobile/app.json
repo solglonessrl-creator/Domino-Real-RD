@@ -68,7 +68,8 @@
       "eas": {
         "projectId": "domino-real-rd"
       },
-      "firebaseProjectId": "domino-real-rd",
+      "firebaseProjectId": "domino-realrd",
+      "firebaseProjectNumber": "898063876162",
       "servidorUrl": "https://domino-real-rd-production.up.railway.app"
     },
     "owner": "dominorealrd"
