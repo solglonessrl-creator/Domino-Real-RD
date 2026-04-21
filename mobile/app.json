@@ -3,6 +3,7 @@
     "name": "Dominó Real RD",
     "slug": "domino-real-rd",
     "version": "1.0.0",
+    "scheme": "dominorealrd",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",

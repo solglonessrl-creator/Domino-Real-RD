@@ -112,6 +112,15 @@ const Jugadores = {
       'UPDATE jugadores SET ultimo_login = NOW() WHERE id = $1',
       [jugadorId]
     );
+  },
+
+  async actualizarSocialId(jugadorId, socialId, loginMethod) {
+    await db.query(
+      `UPDATE jugadores
+       SET social_id = $1, login_method = $2
+       WHERE id = $3 AND social_id IS NULL`,
+      [socialId, loginMethod, jugadorId]
+    );
   }
 };
 

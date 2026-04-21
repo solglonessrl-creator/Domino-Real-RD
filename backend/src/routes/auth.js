@@ -155,42 +155,73 @@ router.post('/facebook', async (req, res) => {
   }
 });
 
-// POST /auth/google - Estructura lista para cuando tengamos Google Client ID
+// POST /auth/google - Login real con verificacion del access token en Google
 router.post('/google', async (req, res) => {
   try {
-    const { nombre, email, socialId, foto, pais = 'RD' } = req.body;
+    const { accessToken, socialId, nombre: nombreFallback, email: emailFallback, foto, pais = 'RD' } = req.body;
 
-    if (!socialId || !nombre)
+    if (!accessToken && !socialId)
+      return res.status(400).json({ exito: false, error: 'Se requiere accessToken de Google' });
+
+    // Verificar el token con Google y obtener el perfil real
+    let perfil = null;
+    if (accessToken) {
+      const googleResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+
+      if (!googleResp.ok)
+        return res.status(401).json({ exito: false, error: 'Token de Google inválido o expirado' });
+
+      perfil = await googleResp.json();
+    }
+
+    // Usar datos verificados de Google o fallback si viene socialId directo
+    const googleId    = perfil?.sub    || socialId;
+    const nombre      = perfil?.name   || nombreFallback;
+    const email       = perfil?.email  || emailFallback;
+    const fotoUrl     = perfil?.picture || foto;
+
+    if (!googleId || !nombre)
       return res.status(400).json({ exito: false, error: 'Datos de Google incompletos' });
 
-    let jugador = await Jugadores.buscarPorSocialId(socialId, 'google');
+    let jugador = await Jugadores.buscarPorSocialId(googleId, 'google');
     let esNuevo = false;
 
     if (!jugador) {
+      // Buscar si ya existe por email (cuenta dual email+google)
       if (email) jugador = await Jugadores.buscarPorEmail(email);
 
       if (!jugador) {
+        // Crear nuevo jugador con cuenta Google
         jugador = await Jugadores.crear({
           nombre,
           email,
           passwordHash: null,
           pais,
           loginMethod: 'google',
-          socialId
+          socialId: googleId
         });
         esNuevo = true;
+      } else {
+        // Vincular cuenta Google existente por email
+        await Jugadores.actualizarSocialId(jugador.id, googleId, 'google');
       }
     }
 
     await Jugadores.actualizarUltimoLogin(jugador.id);
     const token = generarToken(jugador);
 
+    console.log(`[Auth] Google login: ${nombre} (${email}) — ${esNuevo ? 'nuevo' : 'existente'}`);
+
     res.json({
       exito: true,
       token,
       jugador: perfilPublico(jugador),
       esNuevo,
-      mensaje: esNuevo ? `¡Bienvenido, ${nombre}!` : `¡Hola de nuevo, ${jugador.nombre}!`
+      mensaje: esNuevo
+        ? `¡Bienvenido a Dominó Real RD, ${nombre}! 🎲 ¡500 monedas de regalo!`
+        : `¡Bienvenido de nuevo, ${jugador.nombre}! 🎲`
     });
   } catch (err) {
     console.error('[Auth] Error Google:', err.message);
