@@ -17,6 +17,10 @@ import { io } from 'socket.io-client';
 // Pantallas
 import LoginScreenNative from './src/screens/LoginScreenNative';
 import HomeScreenNative from './src/screens/HomeScreenNative';
+import RankingScreenNative from './src/screens/RankingScreenNative';
+import PerfilScreenNative from './src/screens/PerfilScreenNative';
+import TorneosScreenNative from './src/screens/TorneosScreenNative';
+import TiendaScreenNative from './src/screens/TiendaScreenNative';
 
 // ─── URL DEL SERVIDOR ────────────────────────────────────────
 // IMPORTANTE: Cambiar esto a tu URL de Railway cuando hagas deploy
@@ -98,10 +102,16 @@ function TabsPrincipales({ jugador }) {
       <Tab.Screen name="Inicio" options={{ tabBarLabel: 'Inicio' }}>
         {(props) => <HomeScreenNative {...props} jugador={jugador} />}
       </Tab.Screen>
-      <Tab.Screen name="Ranking" component={PantallaProxima} />
+      <Tab.Screen name="Ranking" options={{ tabBarLabel: 'Ranking' }}>
+        {(props) => <RankingScreenNative {...props} jugador={jugador} />}
+      </Tab.Screen>
       <Tab.Screen name="Jugar" component={PantallaProxima} options={{ tabBarLabel: '' }} />
-      <Tab.Screen name="Torneos" component={PantallaProxima} />
-      <Tab.Screen name="Perfil" component={PantallaProxima} />
+      <Tab.Screen name="Torneos" options={{ tabBarLabel: 'Torneos' }}>
+        {(props) => <TorneosScreenNative {...props} jugador={jugador} />}
+      </Tab.Screen>
+      <Tab.Screen name="Perfil" options={{ tabBarLabel: 'Perfil' }}>
+        {(props) => <PerfilScreenNative {...props} jugador={jugador} />}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 }
@@ -228,7 +238,9 @@ export default function App() {
                 component={PantallaProxima}
                 options={{ animation: 'slide_from_bottom', gestureEnabled: false }}
               />
-              <Stack.Screen name="Tienda" component={PantallaProxima} />
+              <Stack.Screen name="Tienda">
+                {(props) => <TiendaScreenNative {...props} jugador={jugador} />}
+              </Stack.Screen>
               <Stack.Screen name="TorneoDetalle" component={PantallaProxima} />
               <Stack.Screen name="PerfilJugador" component={PantallaProxima} />
             </>
