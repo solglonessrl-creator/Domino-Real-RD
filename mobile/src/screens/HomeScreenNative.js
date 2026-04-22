@@ -30,13 +30,50 @@ const modosBotones = [
   { id: 'tienda',   icono: '🛒', titulo: 'Tienda',             sub: 'Fichas, mesas y más',       colores: ['#E65100', '#FF6D00'] }
 ];
 
-export default function HomeScreenNative({ navigation, jugador }) {
-  const [monedas, setMonedas] = useState(jugador?.monedas || 500);
+export default function HomeScreenNative({ navigation, jugador, socket }) {
+  const [monedas,    setMonedas]    = useState(jugador?.monedas || 500);
   const [bonoDiario, setBonoDiario] = useState(true);
 
   const handleBoton = (id) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    navigation.navigate(id === 'rapida' ? 'Buscando' : id.charAt(0).toUpperCase() + id.slice(1));
+
+    switch (id) {
+      case 'rapida':
+        // Matchmaking automático por ELO
+        navigation.navigate('Buscando', { modo: 'online', socket });
+        break;
+
+      case 'amigos': {
+        // Sala privada — crear roomId y ir directo al Lobby
+        const roomId = `privada_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+        navigation.navigate('Lobby', { roomId, modo: 'online', socket });
+        break;
+      }
+
+      case 'vs_ia':
+        // Vs IA — ir al Lobby en modo vs_ia (solo 1 jugador necesario)
+        navigation.navigate('Lobby', {
+          roomId: `ia_${Date.now()}`,
+          modo: 'vs_ia',
+          socket
+        });
+        break;
+
+      case 'torneos':
+        navigation.navigate('Torneos');
+        break;
+
+      case 'ranking':
+        navigation.navigate('Ranking');
+        break;
+
+      case 'tienda':
+        navigation.navigate('Tienda');
+        break;
+
+      default:
+        break;
+    }
   };
 
   return (

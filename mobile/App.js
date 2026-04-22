@@ -25,6 +25,8 @@ import TiendaScreenNative   from './src/screens/TiendaScreenNative';
 // Pantallas nuevas
 import SocialScreenNative   from './src/screens/SocialScreenNative';
 import ChatScreenNative     from './src/screens/ChatScreenNative';
+import BuscandoScreenNative from './src/screens/BuscandoScreenNative';
+import LobbyScreenNative    from './src/screens/LobbyScreenNative';
 
 // ─── URL DEL SERVIDOR ────────────────────────────────────────
 const SERVIDOR_URL = 'https://domino-real-rd-production.up.railway.app';
@@ -106,7 +108,7 @@ function TabsPrincipales({ jugador, socket }) {
       })}
     >
       <Tab.Screen name="Inicio" options={{ tabBarLabel: 'Inicio' }}>
-        {(props) => <HomeScreenNative {...props} jugador={jugador} />}
+        {(props) => <HomeScreenNative {...props} jugador={jugador} socket={socket} />}
       </Tab.Screen>
 
       <Tab.Screen name="Ranking" options={{ tabBarLabel: 'Ranking' }}>
@@ -285,12 +287,25 @@ export default function App() {
 
               {/* ── PANTALLAS DE STACK ─────────────────────── */}
 
-              {/* Matchmaking */}
+              {/* Matchmaking — búsqueda de partida */}
               <Stack.Screen
                 name="Buscando"
-                component={PantallaProxima}
                 options={{ animation: 'fade', gestureEnabled: false }}
-              />
+              >
+                {(props) => (
+                  <BuscandoScreenNative {...props} jugador={jugador} socket={socket} />
+                )}
+              </Stack.Screen>
+
+              {/* Lobby — sala de espera pre-partida */}
+              <Stack.Screen
+                name="Lobby"
+                options={{ animation: 'slide_from_bottom', gestureEnabled: false }}
+              >
+                {(props) => (
+                  <LobbyScreenNative {...props} jugador={jugador} socket={socket} />
+                )}
+              </Stack.Screen>
 
               {/* Partida en curso */}
               <Stack.Screen

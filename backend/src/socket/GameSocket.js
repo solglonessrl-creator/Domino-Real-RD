@@ -16,6 +16,9 @@ const arbitro = new Arbitro();
 // Salas activas de juego
 const salas = new Map();
 
+// Lobbies pre-partida: { roomId: { jugadores: [], listos: Set, modo, hostSocketId } }
+const lobbies = new Map();
+
 // Historial de chats DM (ephemeral 30 min)
 // clave: "id1_dm_id2" (ordenados), valor: array de mensajes
 const dmHistorial = new Map();
@@ -370,6 +373,142 @@ function initGameSocket(io) {
       socket.to(dmRoom).emit('dm_typing', { jugadorId: miId, escribiendo });
     });
 
+    // ════════════════════════════════════════════════════════════
+    // ── LOBBY PRE-PARTIDA ─────────────────────────────────────
+    // Antes de iniciar el juego los 4 jugadores se reúnen aquí,
+    // pueden cambiar de equipo y marcar "Listo"
+    // ════════════════════════════════════════════════════════════
+
+    // Cliente: lobby_join { roomId, jugador, modo }
+    socket.on('lobby_join', ({ roomId, jugador, modo = 'online' }) => {
+      socket.join(`lobby_${roomId}`);
+
+      if (!lobbies.has(roomId)) {
+        lobbies.set(roomId, {
+          jugadores:    [],   // [{ socketId, id, nombre, pais, elo, liga, avatar, posicion, listo }]
+          listos:       new Set(),
+          modo,
+          hostSocketId: socket.id,
+          creadoEn:     Date.now()
+        });
+      }
+
+      const lobby = lobbies.get(roomId);
+
+      // Evitar duplicados
+      if (lobby.jugadores.some(j => j.socketId === socket.id)) {
+        socket.emit('lobby_state', lobbyPublico(lobby));
+        return;
+      }
+
+      // Posición libre: 0,1,2,3 → equipos: 0+2 Azul, 1+3 Rojo
+      const posicionesUsadas = lobby.jugadores.map(j => j.posicion);
+      const posicionLibre = [0, 1, 2, 3].find(p => !posicionesUsadas.includes(p)) ?? lobby.jugadores.length;
+
+      lobby.jugadores.push({
+        socketId: socket.id,
+        id:       jugador.id,
+        nombre:   jugador.nombre || 'Jugador',
+        pais:     jugador.pais   || 'RD',
+        elo:      jugador.elo    || 1200,
+        liga:     jugador.liga   || 'Bronce',
+        avatar:   jugador.avatar || 'avatar_default',
+        posicion: posicionLibre,
+        listo:    false
+      });
+
+      io.to(`lobby_${roomId}`).emit('lobby_state', lobbyPublico(lobby));
+
+      // Limpiar lobby vacío después de 10 min si no inicia
+      setTimeout(() => {
+        if (lobbies.has(roomId) && lobbies.get(roomId).jugadores.length === 0) {
+          lobbies.delete(roomId);
+        }
+      }, 10 * 60 * 1000);
+    });
+
+    // Cliente: lobby_switch { roomId, posicion } — cambiar de posición/equipo
+    socket.on('lobby_switch', ({ roomId, posicion }) => {
+      const lobby = lobbies.get(roomId);
+      if (!lobby) return;
+
+      const yo = lobby.jugadores.find(j => j.socketId === socket.id);
+      if (!yo) return;
+
+      // Verificar que la posición esté libre
+      const ocupada = lobby.jugadores.some(j => j.posicion === posicion && j.socketId !== socket.id);
+      if (ocupada) {
+        socket.emit('lobby_error', { error: 'Esa posición está ocupada' });
+        return;
+      }
+
+      yo.posicion = posicion;
+      yo.listo    = false; // reset listo al cambiar
+      lobby.listos.delete(socket.id);
+
+      io.to(`lobby_${roomId}`).emit('lobby_state', lobbyPublico(lobby));
+    });
+
+    // Cliente: lobby_ready { roomId } — marcar listo / desmarcar
+    socket.on('lobby_ready', ({ roomId }) => {
+      const lobby = lobbies.get(roomId);
+      if (!lobby) return;
+
+      const yo = lobby.jugadores.find(j => j.socketId === socket.id);
+      if (!yo) return;
+
+      yo.listo = !yo.listo;
+      if (yo.listo) lobby.listos.add(socket.id);
+      else          lobby.listos.delete(socket.id);
+
+      io.to(`lobby_${roomId}`).emit('lobby_state', lobbyPublico(lobby));
+
+      // ¿Todos listos y hay 4?
+      const maxJugadores = lobby.modo === 'vs_ia' || lobby.modo === 'practica' ? 1 : 4;
+      if (lobby.jugadores.length === maxJugadores &&
+          lobby.jugadores.every(j => j.listo)) {
+        // Cuenta regresiva de 3 segundos y arranca
+        let cuenta = 3;
+        io.to(`lobby_${roomId}`).emit('lobby_countdown', { segundos: cuenta });
+
+        const intervalo = setInterval(() => {
+          cuenta--;
+          if (cuenta > 0) {
+            io.to(`lobby_${roomId}`).emit('lobby_countdown', { segundos: cuenta });
+          } else {
+            clearInterval(intervalo);
+            io.to(`lobby_${roomId}`).emit('lobby_start', {
+              roomId,
+              jugadores: lobby.jugadores.sort((a, b) => a.posicion - b.posicion),
+              modo:      lobby.modo
+            });
+            lobbies.delete(roomId);
+          }
+        }, 1000);
+      }
+    });
+
+    // Cliente: lobby_cancel { roomId } — salir del lobby
+    socket.on('lobby_cancel', ({ roomId }) => {
+      const lobby = lobbies.get(roomId);
+      if (!lobby) return;
+
+      lobby.jugadores   = lobby.jugadores.filter(j => j.socketId !== socket.id);
+      lobby.listos.delete(socket.id);
+      socket.leave(`lobby_${roomId}`);
+
+      if (lobby.jugadores.length === 0) {
+        lobbies.delete(roomId);
+      } else {
+        // Si era el host, transferir
+        if (lobby.hostSocketId === socket.id) {
+          lobby.hostSocketId = lobby.jugadores[0]?.socketId;
+        }
+        io.to(`lobby_${roomId}`).emit('lobby_state', lobbyPublico(lobby));
+        io.to(`lobby_${roomId}`).emit('lobby_player_left', { nombre: 'Un jugador' });
+      }
+    });
+
     // ── DISCONNECT ────────────────────────────────────────────
     socket.on('disconnect', () => {
       console.log(`[Socket] Desconectado: ${socket.id}`);
@@ -585,6 +724,25 @@ function estadoPublico(estado) {
 function encontrarFicha(estado, jugadorId, fichaId) {
   const mano = estado.manos[`jugador${jugadorId}`];
   return mano?.find(f => f.id === fichaId) || null;
+}
+
+function lobbyPublico(lobby) {
+  return {
+    jugadores: lobby.jugadores.map(j => ({
+      id:       j.id,
+      nombre:   j.nombre,
+      pais:     j.pais,
+      elo:      j.elo,
+      liga:     j.liga,
+      avatar:   j.avatar,
+      posicion: j.posicion,
+      listo:    j.listo,
+      equipo:   j.posicion % 2 === 0 ? 'azul' : 'rojo'
+    })),
+    totalListos:  lobby.listos.size,
+    total:        lobby.jugadores.length,
+    modo:         lobby.modo
+  };
 }
 
 module.exports = { initGameSocket };
