@@ -14,41 +14,46 @@ import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { io } from 'socket.io-client';
 
-// Pantallas
-import LoginScreenNative from './src/screens/LoginScreenNative';
-import HomeScreenNative from './src/screens/HomeScreenNative';
-import RankingScreenNative from './src/screens/RankingScreenNative';
-import PerfilScreenNative from './src/screens/PerfilScreenNative';
-import TorneosScreenNative from './src/screens/TorneosScreenNative';
-import TiendaScreenNative from './src/screens/TiendaScreenNative';
+// Pantallas existentes
+import LoginScreenNative    from './src/screens/LoginScreenNative';
+import HomeScreenNative     from './src/screens/HomeScreenNative';
+import RankingScreenNative  from './src/screens/RankingScreenNative';
+import PerfilScreenNative   from './src/screens/PerfilScreenNative';
+import TorneosScreenNative  from './src/screens/TorneosScreenNative';
+import TiendaScreenNative   from './src/screens/TiendaScreenNative';
+
+// Pantallas nuevas
+import SocialScreenNative   from './src/screens/SocialScreenNative';
+import ChatScreenNative     from './src/screens/ChatScreenNative';
 
 // ─── URL DEL SERVIDOR ────────────────────────────────────────
-// IMPORTANTE: Cambiar esto a tu URL de Railway cuando hagas deploy
 const SERVIDOR_URL = 'https://domino-real-rd-production.up.railway.app';
-// Para pruebas locales con tu IP:
+// Para pruebas locales:
 // const SERVIDOR_URL = 'http://192.168.1.XXX:3001';
 
-// Mantener splash hasta que app esté lista
 SplashScreen.preventAutoHideAsync();
 
-// Configurar cómo se muestran las notificaciones
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
-    shouldSetBadge: true
+    shouldSetBadge:  true
   })
 });
 
 const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
+const Tab   = createBottomTabNavigator();
 
 const COLORES = {
-  azulRD: '#002D62', rojoRD: '#CF142B', blanco: '#FFFFFF',
-  oro: '#FFD700', negro: '#0A0A0A', grisOscuro: '#1A1A2E'
+  azulRD:     '#002D62',
+  rojoRD:     '#CF142B',
+  blanco:     '#FFFFFF',
+  oro:        '#FFD700',
+  negro:      '#0A0A0A',
+  grisOscuro: '#1A1A2E'
 };
 
-// ── PLACEHOLDERS para pantallas en desarrollo ─────────────────
+// ── PLACEHOLDER para pantallas en desarrollo ──────────────────
 function PantallaProxima({ route }) {
   return (
     <View style={{ flex: 1, backgroundColor: COLORES.negro, alignItems: 'center', justifyContent: 'center' }}>
@@ -59,10 +64,11 @@ function PantallaProxima({ route }) {
   );
 }
 
-// ── BARRA DE TABS (pantallas principales) ─────────────────────
-function TabsPrincipales({ jugador }) {
+// ── BARRA DE TABS ─────────────────────────────────────────────
+function TabsPrincipales({ jugador, socket }) {
   const tabIconos = {
-    Inicio: '🏠', Ranking: '📊', Jugar: '🎲', Torneos: '🏆', Perfil: '👤'
+    Inicio: '🏠', Ranking: '📊', Jugar: '🎲', Torneos: '🏆',
+    Social: '👥', Perfil: '👤'
   };
 
   return (
@@ -71,16 +77,16 @@ function TabsPrincipales({ jugador }) {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: COLORES.grisOscuro,
-          borderTopColor: `${COLORES.azulRD}60`,
-          borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 85 : 62,
-          paddingBottom: Platform.OS === 'ios' ? 22 : 8,
-          paddingTop: 6
+          borderTopColor:  `${COLORES.azulRD}60`,
+          borderTopWidth:  1,
+          height:          Platform.OS === 'ios' ? 85 : 62,
+          paddingBottom:   Platform.OS === 'ios' ? 22 : 8,
+          paddingTop:      6
         },
-        tabBarActiveTintColor: COLORES.oro,
+        tabBarActiveTintColor:   COLORES.oro,
         tabBarInactiveTintColor: `${COLORES.blanco}40`,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
-        tabBarIcon: ({ color, focused }) => (
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginTop: 2 },
+        tabBarIcon: ({ focused }) => (
           route.name === 'Jugar'
             ? (
               <View style={{
@@ -102,13 +108,17 @@ function TabsPrincipales({ jugador }) {
       <Tab.Screen name="Inicio" options={{ tabBarLabel: 'Inicio' }}>
         {(props) => <HomeScreenNative {...props} jugador={jugador} />}
       </Tab.Screen>
+
       <Tab.Screen name="Ranking" options={{ tabBarLabel: 'Ranking' }}>
         {(props) => <RankingScreenNative {...props} jugador={jugador} />}
       </Tab.Screen>
+
       <Tab.Screen name="Jugar" component={PantallaProxima} options={{ tabBarLabel: '' }} />
-      <Tab.Screen name="Torneos" options={{ tabBarLabel: 'Torneos' }}>
-        {(props) => <TorneosScreenNative {...props} jugador={jugador} />}
+
+      <Tab.Screen name="Social" options={{ tabBarLabel: 'Social' }}>
+        {(props) => <SocialScreenNative {...props} jugador={jugador} socket={socket} />}
       </Tab.Screen>
+
       <Tab.Screen name="Perfil" options={{ tabBarLabel: 'Perfil' }}>
         {(props) => <PerfilScreenNative {...props} jugador={jugador} />}
       </Tab.Screen>
@@ -116,7 +126,7 @@ function TabsPrincipales({ jugador }) {
   );
 }
 
-// ── SPLASH ANIMADO ────────────────────────────────────────────
+// ── SPLASH ────────────────────────────────────────────────────
 function SplashAnimado() {
   return (
     <View style={estilos.splash}>
@@ -136,31 +146,24 @@ function SplashAnimado() {
 export default function App() {
   const [appLista, setAppLista] = useState(false);
   const [cargando, setCargando] = useState(true);
-  const [jugador, setJugador] = useState(null);
-  const [socket, setSocket] = useState(null);
+  const [jugador,  setJugador]  = useState(null);
+  const [socket,   setSocket]   = useState(null);
 
-  useEffect(() => {
-    inicializar();
-  }, []);
+  useEffect(() => { inicializar(); }, []);
 
   const inicializar = async () => {
     try {
-      // Simular tiempo de splash
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise(r => setTimeout(r, 2000)); // splash mínimo
 
-      // Restaurar sesión guardada
-      const token = await AsyncStorage.getItem('domino_token');
+      const token      = await AsyncStorage.getItem('domino_token');
       const jugadorStr = await AsyncStorage.getItem('domino_jugador');
 
       if (token && jugadorStr) {
-        const jug = JSON.parse(jugadorStr);
-        setJugador(jug);
+        setJugador(JSON.parse(jugadorStr));
         conectarSocket(token);
       }
 
-      // Solicitar permisos de notificación
       await solicitarPermisosNotificacion();
-
     } catch (err) {
       console.error('Error inicializando:', err);
     } finally {
@@ -172,26 +175,27 @@ export default function App() {
 
   const conectarSocket = (token) => {
     const sock = io(SERVIDOR_URL, {
-      auth: { token },
-      reconnection: true,
-      reconnectionAttempts: 5
+      auth:                 { token },
+      reconnection:         true,
+      reconnectionAttempts: 5,
+      reconnectionDelay:    2000
     });
-    sock.on('connect', () => console.log('[Socket] Conectado'));
+    sock.on('connect',    () => console.log('[Socket] Conectado ✅'));
     sock.on('disconnect', () => console.log('[Socket] Desconectado'));
+    sock.on('connect_error', (err) => console.warn('[Socket] Error:', err.message));
     setSocket(sock);
     return sock;
   };
 
   const solicitarPermisosNotificacion = async () => {
     try {
-      // Crear canal de Android primero
       if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('domino_global', {
-          name: 'Dominó Real RD',
-          importance: Notifications.AndroidImportance.HIGH,
+          name:             'Dominó Real RD',
+          importance:       Notifications.AndroidImportance.HIGH,
           vibrationPattern: [0, 250, 250, 250],
-          lightColor: COLORES.azulRD,
-          sound: true
+          lightColor:       COLORES.azulRD,
+          sound:            true
         });
       }
 
@@ -204,69 +208,54 @@ export default function App() {
       }
 
       if (statusFinal !== 'granted') {
-        console.log('[Push] Permisos denegados por el usuario');
+        console.log('[Push] Permisos denegados');
         return;
       }
 
-      // Obtener Expo Push Token
       const pushTokenData = await Notifications.getExpoPushTokenAsync({
         projectId: 'domino-real-rd'
       });
-      const pushToken = pushTokenData.data;
-      console.log('[Push] Token obtenido:', pushToken);
-
-      // Enviar token al servidor
-      await registrarPushToken(pushToken);
-
+      if (pushTokenData?.data) {
+        await registrarPushToken(pushTokenData.data);
+      }
     } catch (err) {
-      console.error('[Push] Error al solicitar permisos:', err.message);
+      console.error('[Push] Error:', err.message);
     }
   };
 
   const registrarPushToken = async (pushToken) => {
     try {
       const token = await AsyncStorage.getItem('domino_token');
-      if (!token) return; // No hay sesión activa aún
+      if (!token) return;
 
-      const resp = await fetch(`${SERVIDOR_URL}/api/jugadores/push-token`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ pushToken })
+      await fetch(`${SERVIDOR_URL}/api/jugadores/push-token`, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ pushToken })
       });
-      const data = await resp.json();
-      if (data.exito) {
-        console.log('[Push] Token registrado en servidor ✅');
-      }
     } catch (err) {
-      console.error('[Push] Error registrando token:', err.message);
+      console.error('[Push] Error registrando:', err.message);
     }
   };
 
   const onLoginExitoso = async (jugadorData, token) => {
     setJugador(jugadorData);
-    conectarSocket(token);
-    // Registrar push token ahora que tenemos sesión
+    const sock = conectarSocket(token);
+
+    // Registrar push token
     try {
       const pushTokenData = await Notifications.getExpoPushTokenAsync({
         projectId: 'domino-real-rd'
       });
       if (pushTokenData?.data) {
-        const resp = await fetch(`${SERVIDOR_URL}/api/jugadores/push-token`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ pushToken: pushTokenData.data })
+        await fetch(`${SERVIDOR_URL}/api/jugadores/push-token`, {
+          method:  'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body:    JSON.stringify({ pushToken: pushTokenData.data })
         });
-        const result = await resp.json();
-        if (result.exito) console.log('[Push] Token registrado tras login ✅');
       }
     } catch (err) {
-      console.log('[Push] No se pudo registrar token tras login:', err.message);
+      console.log('[Push] No se pudo registrar token:', err.message);
     }
   };
 
@@ -282,32 +271,65 @@ export default function App() {
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
           {!jugador ? (
-            // No hay sesión → mostrar login
+            // Sin sesión → login
             <Stack.Screen name="Login">
               {(props) => <LoginScreenNative {...props} onLoginExitoso={onLoginExitoso} />}
             </Stack.Screen>
           ) : (
             // Sesión activa → app completa
             <>
+              {/* Tabs principales */}
               <Stack.Screen name="Main">
-                {(props) => <TabsPrincipales {...props} jugador={jugador} />}
+                {(props) => <TabsPrincipales {...props} jugador={jugador} socket={socket} />}
               </Stack.Screen>
 
-              {/* Pantallas de stack (encima de los tabs) */}
+              {/* ── PANTALLAS DE STACK ─────────────────────── */}
+
+              {/* Matchmaking */}
               <Stack.Screen
                 name="Buscando"
                 component={PantallaProxima}
                 options={{ animation: 'fade', gestureEnabled: false }}
               />
+
+              {/* Partida en curso */}
               <Stack.Screen
                 name="Juego"
                 component={PantallaProxima}
                 options={{ animation: 'slide_from_bottom', gestureEnabled: false }}
               />
+
+              {/* Chat DM o de sala */}
+              <Stack.Screen
+                name="Chat"
+                options={{
+                  animation:     'slide_from_right',
+                  gestureEnabled: true,
+                  presentation:  'card'
+                }}
+              >
+                {(props) => (
+                  <ChatScreenNative
+                    {...props}
+                    jugador={jugador}
+                  />
+                )}
+              </Stack.Screen>
+
+              {/* Tienda */}
               <Stack.Screen name="Tienda">
                 {(props) => <TiendaScreenNative {...props} jugador={jugador} />}
               </Stack.Screen>
+
+              {/* Torneos */}
+              <Stack.Screen name="Torneos">
+                {(props) => <TorneosScreenNative {...props} jugador={jugador} />}
+              </Stack.Screen>
+
+              {/* Detalle de torneo */}
               <Stack.Screen name="TorneoDetalle" component={PantallaProxima} />
+
+              {/* Perfil público de otro jugador */}
               <Stack.Screen name="PerfilJugador" component={PantallaProxima} />
             </>
           )}
@@ -319,15 +341,13 @@ export default function App() {
 
 const estilos = StyleSheet.create({
   splash: {
-    flex: 1,
-    backgroundColor: COLORES.azulRD,
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1, backgroundColor: COLORES.azulRD,
+    alignItems: 'center', justifyContent: 'center',
     paddingHorizontal: 40
   },
-  splashEmoji: { fontSize: 80, marginBottom: 20 },
-  splashTitulo: { color: COLORES.blanco, fontSize: 28, fontWeight: 'bold', letterSpacing: 2, textAlign: 'center' },
-  splashSub: { color: COLORES.oro, fontSize: 12, letterSpacing: 2, marginTop: 8, textAlign: 'center' },
-  splashBarra: { width: 200, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, marginTop: 30, overflow: 'hidden' },
-  splashBarraInner: { width: '70%', height: '100%', backgroundColor: COLORES.oro, borderRadius: 2 }
+  splashEmoji:     { fontSize: 80, marginBottom: 20 },
+  splashTitulo:    { color: COLORES.blanco, fontSize: 28, fontWeight: 'bold', letterSpacing: 2, textAlign: 'center' },
+  splashSub:       { color: COLORES.oro, fontSize: 12, letterSpacing: 2, marginTop: 8, textAlign: 'center' },
+  splashBarra:     { width: 200, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, marginTop: 30, overflow: 'hidden' },
+  splashBarraInner:{ width: '70%', height: '100%', backgroundColor: COLORES.oro, borderRadius: 2 }
 });
