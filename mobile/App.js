@@ -27,8 +27,9 @@ import SocialScreenNative    from './src/screens/SocialScreenNative';
 import ChatScreenNative      from './src/screens/ChatScreenNative';
 import BuscandoScreenNative  from './src/screens/BuscandoScreenNative';
 import LobbyScreenNative     from './src/screens/LobbyScreenNative';
-import JuegoScreenNative     from './src/screens/JuegoScreenNative';
-import ResultadosScreenNative from './src/screens/ResultadosScreenNative';
+import JuegoScreenNative      from './src/screens/JuegoScreenNative';
+import ResultadosScreenNative  from './src/screens/ResultadosScreenNative';
+import ConfigScreenNative      from './src/screens/ConfigScreenNative';
 
 // ─── URL DEL SERVIDOR ────────────────────────────────────────
 const SERVIDOR_URL = 'https://domino-real-rd-production.up.railway.app';
@@ -344,6 +345,11 @@ export default function App() {
                     jugador={jugador}
                   />
                 )}
+              </Stack.Screen>
+
+              {/* Configuración */}
+              <Stack.Screen name="Config" options={{ animation: 'slide_from_right' }}>
+                {(props) => <ConfigScreenNative {...props} jugador={jugador} />}
               </Stack.Screen>
 
               {/* Tienda */}

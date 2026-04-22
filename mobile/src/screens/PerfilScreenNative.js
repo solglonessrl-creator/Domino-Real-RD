@@ -80,6 +80,15 @@ export default function PerfilScreenNative({ navigation, jugador: jugadorProp })
     <ScrollView style={styles.contenedor} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <LinearGradient colors={[COLORES.azulRD, COLORES.grisOscuro, COLORES.rojoRD]} style={styles.header}>
+        {/* Botón Configuración */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Config')}
+          style={{ position: 'absolute', top: 52, right: 20, padding: 8,
+            backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 10 }}
+        >
+          <Text style={{ fontSize: 22 }}>⚙️</Text>
+        </TouchableOpacity>
+
         <View style={styles.avatarGrande}>
           <Text style={{ fontSize: 48 }}>👤</Text>
         </View>

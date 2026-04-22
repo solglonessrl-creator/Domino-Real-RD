@@ -151,6 +151,12 @@ export default function JuegoScreenNative({ route, navigation }) {
   const [puntosRojo,   setPuntosRojo]   = useState(0);
   const [ronda,        setRonda]        = useState(1);
 
+  // ── VOTOS TRAMPA ──────────────────────────────────────────
+  const [modalVoto,    setModalVoto]    = useState(false);
+  const [votosActuales,setVotosActuales]= useState({});        // { posicion: totalVotos }
+  const [yaVote,       setYaVote]       = useState({});        // { posicion: true/false }
+  const [trampaBanner, setTrampaBanner] = useState(null);
+
   // ── CHAT ──────────────────────────────────────────────────
   const [chatVisible,  setChatVisible]  = useState(false);
   const [chatMensajes, setChatMensajes] = useState([]);
@@ -293,6 +299,19 @@ export default function JuegoScreenNative({ route, navigation }) {
       setMensaje(`📶 ${nombre || 'Jugador'} perdió conexión...`);
     });
 
+    // ── VOTOS TRAMPA ───────────────────────────────────────
+    socket.on('votos_trampa_update', ({ acusadoId, acusadoNombre, totalVotos, votantesIds }) => {
+      setVotosActuales(prev => ({ ...prev, [acusadoId]: totalVotos }));
+      setMensaje(`🚨 ${acusadoNombre} acusado de trampa: ${totalVotos}/3 votos`);
+      Vibration.vibrate(200);
+    });
+
+    socket.on('trampa_confirmada', ({ acusadoNombre, mensaje }) => {
+      setTrampaBanner(mensaje);
+      Vibration.vibrate([0, 400, 200, 400]);
+      setTimeout(() => navigation.navigate('Main'), 8000);
+    });
+
     return () => {
       socket.off('game_start');
       socket.off('game_state');
@@ -307,6 +326,8 @@ export default function JuegoScreenNative({ route, navigation }) {
       socket.off('juego_reanudar');
       socket.off('game_abandoned');
       socket.off('player_disconnected');
+      socket.off('votos_trampa_update');
+      socket.off('trampa_confirmada');
     };
   }, [socket, roomId]);
 
@@ -725,7 +746,106 @@ export default function JuegoScreenNative({ route, navigation }) {
           <Text style={estilos.btnAccionEmoji}>🎉</Text>
           <Text style={estilos.btnAccionTexto}>Reacción</Text>
         </TouchableOpacity>
+
+        {/* Votar trampa */}
+        <TouchableOpacity
+          onPress={() => setModalVoto(true)}
+          style={estilos.btnAccion}
+        >
+          <Text style={estilos.btnAccionEmoji}>🚨</Text>
+          <Text style={estilos.btnAccionTexto}>Trampa</Text>
+        </TouchableOpacity>
       </View>
+
+      {/* ── Banner trampa confirmada ────────────────────── */}
+      {trampaBanner && (
+        <View style={estilos.trampaBanner}>
+          <Text style={estilos.trampaBannerTexto}>{trampaBanner}</Text>
+          <Text style={{ color: `${C.blanco}70`, fontSize: 11, marginTop: 6 }}>
+            Volviendo al inicio en 8 segundos...
+          </Text>
+        </View>
+      )}
+
+      {/* ════════════════════════════════════════════════════ */}
+      {/* MODAL: Votar trampa                                 */}
+      {/* ════════════════════════════════════════════════════ */}
+      <Modal visible={modalVoto} transparent animationType="slide">
+        <View style={estilos.modalOverlay}>
+          <View style={estilos.modalBox}>
+            <Text style={estilos.modalTitulo}>🚨 Reportar trampa</Text>
+            <Text style={{ color: `${C.blanco}70`, fontSize: 12, textAlign: 'center', marginBottom: 16 }}>
+              Si 3 de 4 jugadores votan, se aplica sanción automática
+            </Text>
+
+            {/* Lista de rivales (no incluye al propio jugador) */}
+            {jugadores
+              .filter(j => j.posicion !== miPosicion)
+              .map(j => {
+                const votos = votosActuales[j.posicion] || 0;
+                const yoVoté = yaVote[j.posicion];
+                return (
+                  <TouchableOpacity
+                    key={j.posicion}
+                    disabled={yoVoté}
+                    onPress={() => {
+                      if (yoVoté) return;
+                      Alert.alert(
+                        '¿Reportar trampa?',
+                        `¿Estás seguro de que ${j.nombre} está haciendo trampa?`,
+                        [
+                          { text: 'Cancelar', style: 'cancel' },
+                          {
+                            text: 'Votar trampa',
+                            style: 'destructive',
+                            onPress: () => {
+                              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                              socket?.emit('voto_trampa', { roomId, acusadoId: j.posicion });
+                              setYaVote(prev => ({ ...prev, [j.posicion]: true }));
+                              setModalVoto(false);
+                            }
+                          }
+                        ]
+                      );
+                    }}
+                    style={[
+                      estilos.votoFila,
+                      yoVoté && { opacity: 0.5 }
+                    ]}
+                  >
+                    <Text style={{ fontSize: 24 }}>👤</Text>
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={{ color: C.blanco, fontWeight: 'bold', fontSize: 14 }}>
+                        {j.nombre}
+                      </Text>
+                      <Text style={{ color: `${C.blanco}60`, fontSize: 11 }}>
+                        {j.posicion % 2 === 0 ? '🔵 Equipo Azul' : '🔴 Equipo Rojo'}
+                      </Text>
+                    </View>
+                    <View style={estilos.votosChip}>
+                      <Text style={estilos.votosChipNum}>{votos}/3</Text>
+                      <Text style={estilos.votosChipLabel}>votos</Text>
+                    </View>
+                    {!yoVoté && (
+                      <View style={estilos.votarBtn}>
+                        <Text style={{ color: C.blanco, fontSize: 10, fontWeight: 'bold' }}>
+                          VOTAR
+                        </Text>
+                      </View>
+                    )}
+                    {yoVoté && (
+                      <Text style={{ color: C.verdeCl, fontSize: 11 }}>✓ Votado</Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+
+            <TouchableOpacity onPress={() => setModalVoto(false)} style={{ marginTop: 16, alignItems: 'center' }}>
+              <Text style={{ color: `${C.blanco}60`, fontSize: 14 }}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* ════════════════════════════════════════════════════ */}
       {/* MODAL: Elegir lado de la ficha                      */}
@@ -1237,5 +1357,30 @@ const estilos = StyleSheet.create({
   },
   btnResultadosTexto: {
     color: C.negro, fontWeight: 'bold', fontSize: 16
+  },
+
+  // Trampa
+  trampaBanner: {
+    position: 'absolute', bottom: 100, left: 16, right: 16,
+    backgroundColor: '#B71C1C', borderRadius: 14,
+    padding: 16, zIndex: 900,
+    borderWidth: 2, borderColor: C.rojo,
+    alignItems: 'center',
+  },
+  trampaBannerTexto: {
+    color: C.blanco, fontWeight: 'bold', fontSize: 13, textAlign: 'center'
+  },
+  votoFila: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: `${C.blanco}08`, borderRadius: 12,
+    padding: 14, marginBottom: 8,
+    borderWidth: 1, borderColor: `${C.blanco}15`
+  },
+  votosChip: { alignItems: 'center', marginRight: 10 },
+  votosChipNum:   { color: C.rojo, fontWeight: 'bold', fontSize: 16 },
+  votosChipLabel: { color: `${C.blanco}50`, fontSize: 9 },
+  votarBtn: {
+    backgroundColor: C.rojo, paddingHorizontal: 10,
+    paddingVertical: 6, borderRadius: 8
   },
 });

@@ -582,6 +582,65 @@ function initGameSocket(io) {
       });
     });
 
+    // ════════════════════════════════════════════════════════════
+    // ── VOTOS POR TRAMPA ──────────────────────────────────────
+    // Si 3 de 4 jugadores votan trampa → sanción automática
+    // Uso: presionar largo sobre un jugador → votar
+    // ════════════════════════════════════════════════════════════
+
+    socket.on('voto_trampa', ({ roomId, acusadoId }) => {
+      const sala = salas.get(roomId);
+      if (!sala || !sala.estado) return;
+
+      const votante = sala.jugadores[socket.id];
+      if (!votante) return;
+
+      // No se puede votar contra sí mismo
+      if (votante.posicion === acusadoId) {
+        socket.emit('voto_trampa_error', { error: 'No puedes votarte a ti mismo' });
+        return;
+      }
+
+      // Inicializar registro de votos si no existe
+      if (!sala.votosTrampa) sala.votosTrampa = {};
+      if (!sala.votosTrampa[acusadoId]) sala.votosTrampa[acusadoId] = new Set();
+
+      // Registrar voto (un jugador = un voto por acusado)
+      sala.votosTrampa[acusadoId].add(votante.posicion);
+      const totalVotos = sala.votosTrampa[acusadoId].size;
+
+      // Encontrar nombre del acusado
+      const acusadoInfo = Object.values(sala.jugadores).find(j => j.posicion === acusadoId);
+
+      // Avisar a todos cuántos votos lleva el acusado
+      io.to(roomId).emit('votos_trampa_update', {
+        acusadoId,
+        acusadoNombre: acusadoInfo?.nombre || 'Jugador',
+        totalVotos,
+        votantesIds: [...sala.votosTrampa[acusadoId]]
+      });
+
+      // ¿3 de 4 votan trampa? → sanción automática
+      if (totalVotos >= 3) {
+        const equipoAcusado = acusadoId % 2; // 0=azul, 1=rojo
+        const equipoGanador = equipoAcusado === 0 ? 1 : 0;
+
+        io.to(roomId).emit('trampa_confirmada', {
+          acusadoId,
+          acusadoNombre:    acusadoInfo?.nombre || 'Jugador',
+          equipoGanador,
+          mensaje:          `🚫 ¡TRAMPA DETECTADA! ${acusadoInfo?.nombre || 'Un jugador'} fue sancionado por consenso de los jugadores. El partido fue otorgado al equipo contrario.`,
+          penalizacion:     'ELO -50 + Suspensión 24h en torneos'
+        });
+
+        // Limpiar sala después de 15 segundos
+        setTimeout(() => salas.delete(roomId), 15000);
+
+        // TODO: Registrar sanción en la base de datos
+        // db.query('UPDATE jugadores SET suspension_hasta = NOW() + INTERVAL 24 hours ...')
+      }
+    });
+
     // ── DISCONNECT ────────────────────────────────────────────
     socket.on('disconnect', () => {
       console.log(`[Socket] Desconectado: ${socket.id}`);
