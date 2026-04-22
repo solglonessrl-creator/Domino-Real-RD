@@ -144,6 +144,8 @@ export default function LoginScreenNative({ navigation, onLoginExitoso }) {
       if (!data.exito) throw new Error(data.error || 'Error en servidor');
 
       await guardarSesion(data);
+      // Guardar el token de FB para buscar amigos después
+      await AsyncStorage.setItem('domino_fb_token', authentication.accessToken);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onLoginExitoso(data.jugador, data.token);
     } catch (err) {

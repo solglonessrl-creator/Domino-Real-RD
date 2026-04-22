@@ -28,18 +28,24 @@ const COLORES = {
 const PESTANAS = [
   { id: 'amigos',      label: '👥 Amigos' },
   { id: 'solicitudes', label: '📨 Solicitudes' },
-  { id: 'buscar',      label: '🔍 Buscar' }
+  { id: 'buscar',      label: '🔍 Buscar' },
+  { id: 'facebook',    label: '🔵 Facebook' }
 ];
 
 export default function SocialScreenNative({ navigation, jugador, socket }) {
-  const [pestana,     setPestana]     = useState('amigos');
-  const [amigos,      setAmigos]      = useState([]);
-  const [solicitudes, setSolicitudes] = useState([]);
-  const [busqueda,    setBusqueda]    = useState('');
-  const [resultados,  setResultados]  = useState([]);
-  const [cargando,    setCargando]    = useState(true);
-  const [refresco,    setRefresco]    = useState(false);
-  const [buscando,    setBuscando]    = useState(false);
+  const [pestana,         setPestana]         = useState('amigos');
+  const [amigos,          setAmigos]          = useState([]);
+  const [solicitudes,     setSolicitudes]     = useState([]);
+  const [busqueda,        setBusqueda]        = useState('');
+  const [resultados,      setResultados]      = useState([]);
+  const [cargando,        setCargando]        = useState(true);
+  const [refresco,        setRefresco]        = useState(false);
+  const [buscando,        setBuscando]        = useState(false);
+  // Facebook friends
+  const [amigosFB,        setAmigosFB]        = useState([]);
+  const [cargandoFB,      setCargandoFB]      = useState(false);
+  const [fbBuscado,       setFbBuscado]       = useState(false);
+  const [fbMensaje,       setFbMensaje]       = useState('');
 
   useEffect(() => { cargarDatos(); }, []);
 
@@ -138,6 +144,43 @@ export default function SocialScreenNative({ navigation, jugador, socket }) {
   };
 
   // ── INVITAR A PARTIDA ─────────────────────────────────────────
+  // ── BUSCAR AMIGOS DE FACEBOOK ─────────────────────────────────
+  const buscarAmigosFacebook = async () => {
+    setCargandoFB(true);
+    setFbBuscado(false);
+    try {
+      const [token, fbToken] = await Promise.all([
+        AsyncStorage.getItem('domino_token'),
+        AsyncStorage.getItem('domino_fb_token')
+      ]);
+
+      if (!fbToken) {
+        setFbMensaje('Inicia sesión con Facebook para buscar amigos 🔵');
+        setCargandoFB(false);
+        setFbBuscado(true);
+        return;
+      }
+
+      const resp = await fetch(`${API_URL}/social/amigos-facebook`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ accessToken: fbToken })
+      });
+      const data = await resp.json();
+
+      if (data.exito) {
+        setAmigosFB(data.amigos || []);
+        setFbMensaje(data.mensaje || '');
+      } else {
+        setFbMensaje(data.error || 'Error al buscar amigos de Facebook');
+      }
+    } catch (e) {
+      setFbMensaje('No se pudo conectar. Verifica tu conexión.');
+    }
+    setCargandoFB(false);
+    setFbBuscado(true);
+  };
+
   const invitarPartida = async (amigoId, nombre) => {
     const roomId = `privada_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     try {
@@ -270,6 +313,36 @@ export default function SocialScreenNative({ navigation, jugador, socket }) {
       </View>
     );
   };
+
+  // ── RENDER: AMIGO DE FACEBOOK ────────────────────────────────
+  const renderAmigoFB = ({ item }) => (
+    <View style={estilos.card}>
+      <View style={estilos.avatarCircle}>
+        <Text style={estilos.avatarEmoji}>{item.foto_facebook ? '📷' : '👤'}</Text>
+      </View>
+      <View style={estilos.cardInfo}>
+        <Text style={estilos.cardNombre}>{item.nombre_facebook || item.nombre}</Text>
+        <Text style={estilos.cardSub}>⚡ {item.elo}  ·  {item.liga}  ·  🇩🇴 {item.pais}</Text>
+        <Text style={{ color: '#1877F2', fontSize: 11, marginTop: 2 }}>🔵 Amigo de Facebook</Text>
+      </View>
+      {item.ya_es_amigo ? (
+        <View style={[estilos.btnAgregar, { backgroundColor: '#1B5E20' }]}>
+          <Text style={estilos.btnAgregarTexto}>✓ Amigos</Text>
+        </View>
+      ) : item.pendiente ? (
+        <View style={[estilos.btnAgregar, { backgroundColor: '#333' }]}>
+          <Text style={estilos.btnAgregarTexto}>⏳ Enviada</Text>
+        </View>
+      ) : (
+        <TouchableOpacity
+          onPress={() => agregarAmigo(item.id, item.nombre)}
+          style={estilos.btnAgregar}
+        >
+          <Text style={estilos.btnAgregarTexto}>+ Agregar</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 
   if (cargando) {
     return (
@@ -426,6 +499,76 @@ export default function SocialScreenNative({ navigation, jugador, socket }) {
         />
       )}
 
+      {/* ── PESTAÑA FACEBOOK ─────────────────────────────────── */}
+      {pestana === 'facebook' && (
+        <View style={{ flex: 1 }}>
+          {/* Botón buscar */}
+          {!fbBuscado && (
+            <View style={estilos.fbBtnWrap}>
+              <Text style={estilos.fbExplica}>
+                Encuentra amigos que ya juegan Dominó Real RD 🎲{'\n'}
+                Solo aparecen amigos que también autorizaron la app en Facebook.
+              </Text>
+              <TouchableOpacity
+                onPress={buscarAmigosFacebook}
+                style={estilos.fbBtn}
+                disabled={cargandoFB}
+              >
+                {cargandoFB
+                  ? <ActivityIndicator color={COLORES.blanco} />
+                  : <Text style={estilos.fbBtnTexto}>🔵 Buscar amigos de Facebook</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Buscando... */}
+          {cargandoFB && (
+            <View style={estilos.vacio}>
+              <ActivityIndicator color='#1877F2' size="large" />
+              <Text style={[estilos.vacioTexto, { marginTop: 12 }]}>Buscando en Facebook...</Text>
+            </View>
+          )}
+
+          {/* Resultados */}
+          {fbBuscado && !cargandoFB && (
+            <>
+              <View style={estilos.fbMensajeWrap}>
+                <Text style={estilos.fbMensajeTexto}>{fbMensaje}</Text>
+                <TouchableOpacity onPress={() => { setFbBuscado(false); setAmigosFB([]); }}>
+                  <Text style={{ color: '#1877F2', fontSize: 13 }}>🔄 Volver a buscar</Text>
+                </TouchableOpacity>
+              </View>
+
+              <FlatList
+                data={amigosFB}
+                keyExtractor={item => item.id}
+                renderItem={renderAmigoFB}
+                contentContainerStyle={estilos.lista}
+                ListEmptyComponent={
+                  <View style={estilos.vacio}>
+                    <Text style={estilos.vacioEmoji}>🔵</Text>
+                    <Text style={estilos.vacioTexto}>Ningún amigo encontrado aún</Text>
+                    <Text style={estilos.vacioSub}>
+                      Invita a tus amigos de Facebook{'\n'}a descargar Dominó Real RD 🎲
+                    </Text>
+                    <TouchableOpacity
+                      style={estilos.btnIrBuscar}
+                      onPress={async () => {
+                        const { Share } = require('react-native');
+                        Share.share({ message: '¡Juega dominó dominicano conmigo! 🎲🇩🇴 Descarga Dominó Real RD https://domino-real-rd.vercel.app' });
+                      }}
+                    >
+                      <Text style={estilos.btnIrBuscarTexto}>📤 Invitar amigos</Text>
+                    </TouchableOpacity>
+                  </View>
+                }
+              />
+            </>
+          )}
+        </View>
+      )}
+
     </View>
   );
 }
@@ -539,5 +682,21 @@ const estilos = StyleSheet.create({
     marginTop: 8, backgroundColor: COLORES.azulRD,
     borderRadius: 20, paddingHorizontal: 20, paddingVertical: 12
   },
-  btnIrBuscarTexto: { color: COLORES.blanco, fontSize: 15, fontWeight: 'bold' }
+  btnIrBuscarTexto: { color: COLORES.blanco, fontSize: 15, fontWeight: 'bold' },
+
+  // Facebook tab
+  fbBtnWrap: { padding: 20, gap: 16, alignItems: 'center' },
+  fbExplica: { color: '#888', fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  fbBtn: {
+    backgroundColor: '#1877F2',
+    borderRadius: 16, paddingHorizontal: 28, paddingVertical: 16,
+    width: '100%', alignItems: 'center'
+  },
+  fbBtnTexto: { color: COLORES.blanco, fontSize: 16, fontWeight: 'bold' },
+  fbMensajeWrap: {
+    padding: 14, backgroundColor: 'rgba(24,119,242,0.1)',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(24,119,242,0.2)',
+    gap: 6, alignItems: 'center'
+  },
+  fbMensajeTexto: { color: COLORES.blanco, fontSize: 14, textAlign: 'center', fontWeight: '600' }
 });

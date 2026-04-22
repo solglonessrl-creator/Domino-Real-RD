@@ -293,6 +293,89 @@ router.post('/registrar-referido', authMiddleware, async (req, res) => {
   }
 });
 
+// POST /social/amigos-facebook — Encontrar amigos de Facebook que usan la app
+router.post('/amigos-facebook', authMiddleware, async (req, res) => {
+  try {
+    const { accessToken } = req.body;
+    if (!accessToken) return res.status(400).json({ exito: false, error: 'accessToken de Facebook requerido' });
+
+    // Obtener lista de amigos del usuario desde Facebook Graph API
+    // Solo devuelve amigos que también autorizaron la app (política de Meta post-2015)
+    const fbResp = await fetch(
+      `https://graph.facebook.com/me/friends?fields=id,name,picture.type(normal)&access_token=${accessToken}&limit=200`
+    );
+    const fbData = await fbResp.json();
+
+    if (fbData.error) {
+      return res.status(401).json({ exito: false, error: 'Token de Facebook inválido o expirado' });
+    }
+
+    const fbAmigos = fbData.data || [];
+
+    if (fbAmigos.length === 0) {
+      return res.json({
+        exito: true,
+        amigos: [],
+        totalEnFacebook: 0,
+        mensaje: 'Ningún amigo de Facebook usa la app aún — ¡invítalos a jugar! 🎲'
+      });
+    }
+
+    const fbIds = fbAmigos.map(f => f.id);
+
+    // Buscar cuáles de esos IDs están registrados en la app
+    const result = await db.query(
+      `SELECT id, nombre, pais, elo, liga, avatar, social_id
+       FROM jugadores
+       WHERE social_id = ANY($1::text[])
+         AND login_method = 'facebook'
+         AND activo = TRUE
+         AND id != $2`,
+      [fbIds, req.jugador.id]
+    );
+
+    // Ver cuáles ya son amigos
+    const yaAmigosResult = await db.query(
+      `SELECT CASE WHEN solicitante_id = $1 THEN receptor_id ELSE solicitante_id END as amigo_id, estado
+       FROM amistades
+       WHERE solicitante_id = $1 OR receptor_id = $1`,
+      [req.jugador.id]
+    );
+    const relacionMap = new Map(yaAmigosResult.rows.map(r => [r.amigo_id, r.estado]));
+
+    // Combinar datos de la app + foto de Facebook
+    const jugadoresEncontrados = result.rows.map(j => {
+      const fbAmigo = fbAmigos.find(f => f.id === j.social_id);
+      const relacion = relacionMap.get(j.id) || null;
+      return {
+        id:            j.id,
+        nombre:        j.nombre,
+        pais:          j.pais,
+        elo:           j.elo,
+        liga:          j.liga,
+        avatar:        j.avatar,
+        foto_facebook: fbAmigo?.picture?.data?.url || null,
+        nombre_facebook: fbAmigo?.name || j.nombre,
+        ya_es_amigo:   relacion === 'aceptada',
+        pendiente:     relacion === 'pendiente'
+      };
+    });
+
+    res.json({
+      exito:          true,
+      amigos:         jugadoresEncontrados,
+      totalEnFacebook: fbAmigos.length,
+      encontrados:    jugadoresEncontrados.length,
+      mensaje:        jugadoresEncontrados.length === 0
+        ? `Tienes ${fbAmigos.length} amigos en Facebook pero ninguno usa la app aún — ¡invítalos!`
+        : `¡${jugadoresEncontrados.length} amigo${jugadoresEncontrados.length !== 1 ? 's' : ''} de Facebook encontrado${jugadoresEncontrados.length !== 1 ? 's' : ''}! 🎲`
+    });
+  } catch (err) {
+    console.error('[Social FB]', err.message);
+    res.status(500).json({ exito: false, error: err.message });
+  }
+});
+
 // GET /social/eventos
 router.get('/eventos', async (req, res) => {
   const ahora = new Date();
