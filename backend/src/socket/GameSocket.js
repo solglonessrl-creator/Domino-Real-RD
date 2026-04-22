@@ -67,7 +67,10 @@ function initGameSocket(io) {
           modo,
           ai: null,
           chatHistorial: [],
-          creadaEn: Date.now()
+          creadaEn:        Date.now(),
+          chatHabilitado:  false,          // Solo activo durante el barajado entre manos
+          jugadoresPausados: new Set(),    // Anti-trampa: quién salió de la app
+          timerPausas:     new Map()       // Timers de abandono por jugador
         });
       }
 
@@ -247,6 +250,14 @@ function initGameSocket(io) {
       const ahora = Date.now();
       if (socket._ultimoChat && (ahora - socket._ultimoChat) < 1000) return;
       socket._ultimoChat = ahora;
+
+      // ── ANTI-TRAMPA: chat solo durante barajado ──────────────
+      if (!sala.chatHabilitado) {
+        socket.emit('chat_error', {
+          error: '🎲 El chat se habilita mientras se barajan las fichas entre manos'
+        });
+        return;
+      }
 
       // Verificar ventana de 30 minutos desde la creación de la sala
       if (ahora - sala.creadaEn > CHAT_TTL + (10 * 60 * 1000)) {
@@ -509,6 +520,68 @@ function initGameSocket(io) {
       }
     });
 
+    // ════════════════════════════════════════════════════════════
+    // ── ANTI-TRAMPA: Detección de salida de la app ────────────
+    // El cliente emite este evento cuando AppState cambia a 'background'
+    // ════════════════════════════════════════════════════════════
+
+    socket.on('app_background', ({ roomId }) => {
+      const sala = salas.get(roomId);
+      if (!sala || !sala.estado || sala.estado.estado !== 'jugando') return;
+
+      const jugadorInfo = sala.jugadores[socket.id];
+      if (!jugadorInfo) return;
+
+      // Marcar como pausado
+      sala.jugadoresPausados.add(socket.id);
+
+      // Avisar a todos: este jugador salió (posible trampa)
+      io.to(roomId).emit('juego_pausa', {
+        jugadorNombre: jugadorInfo.nombre,
+        jugadorId:     jugadorInfo.posicion,
+        motivo:        'SALIO_APP',
+        mensaje:       `⚠️ ${jugadorInfo.nombre} salió de la app — Juego pausado`
+      });
+
+      // 60 segundos para volver, si no = abandono
+      const timer = setTimeout(() => {
+        if (sala.jugadoresPausados.has(socket.id)) {
+          io.to(roomId).emit('game_abandoned', {
+            mensaje:   `${jugadorInfo.nombre} abandonó la partida (salió de la app).`,
+            jugadorId: jugadorInfo.posicion
+          });
+          // Limpiar sala después de 30 segundos adicionales
+          setTimeout(() => salas.delete(roomId), 30000);
+        }
+      }, 60000);
+
+      sala.timerPausas.set(socket.id, timer);
+    });
+
+    socket.on('app_foreground', ({ roomId }) => {
+      const sala = salas.get(roomId);
+      if (!sala) return;
+
+      const jugadorInfo = sala.jugadores[socket.id];
+      if (!jugadorInfo) return;
+
+      // Cancelar timer de abandono
+      const timer = sala.timerPausas.get(socket.id);
+      if (timer) {
+        clearTimeout(timer);
+        sala.timerPausas.delete(socket.id);
+      }
+
+      sala.jugadoresPausados.delete(socket.id);
+
+      // Avisar a todos: el jugador volvió
+      io.to(roomId).emit('juego_reanudar', {
+        jugadorNombre: jugadorInfo.nombre,
+        jugadorId:     jugadorInfo.posicion,
+        mensaje:       `✅ ${jugadorInfo.nombre} volvió al juego`
+      });
+    });
+
     // ── DISCONNECT ────────────────────────────────────────────
     socket.on('disconnect', () => {
       console.log(`[Socket] Desconectado: ${socket.id}`);
@@ -680,10 +753,21 @@ function procesarFinRonda(io, roomId, sala) {
     // NO borrar la sala inmediatamente — dejar 30 min de chat post-partida
     setTimeout(() => salas.delete(roomId), CHAT_TTL);
   } else {
+    // ── BARAJANDO: Habilitar chat por 8 segundos entre manos ─
+    sala.chatHabilitado = true;
+    sala.chatHistorial  = []; // limpiar historial anterior
+    io.to(roomId).emit('chat_estado', {
+      habilitado: true,
+      duracion:   8000,
+      mensaje:    '🎲 ¡Barajando las fichas! Pueden chachear estos segundos 💬'
+    });
+
+    // Después de 5s: nueva mano. Después de 8s: cerrar chat.
     setTimeout(() => {
       if (salas.has(roomId)) {
+        const nuevaRonda = (sala.estado.ronda || 1) + 1;
         sala.estado        = engine.iniciarPartida(Object.values(sala.jugadores).filter(j => !j.esBot));
-        sala.estado.ronda  = (sala.estado.ronda || 1) + 1;
+        sala.estado.ronda  = nuevaRonda;
 
         io.to(roomId).emit('new_round', {
           estado:        estadoPublico(sala.estado),
@@ -696,6 +780,14 @@ function procesarFinRonda(io, roomId, sala) {
         }
       }
     }, 5000);
+
+    // Cerrar chat cuando termina el barajado
+    setTimeout(() => {
+      if (salas.has(roomId)) {
+        sala.chatHabilitado = false;
+        io.to(roomId).emit('chat_estado', { habilitado: false });
+      }
+    }, 8000);
   }
 }
 

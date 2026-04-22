@@ -23,10 +23,12 @@ import TorneosScreenNative  from './src/screens/TorneosScreenNative';
 import TiendaScreenNative   from './src/screens/TiendaScreenNative';
 
 // Pantallas nuevas
-import SocialScreenNative   from './src/screens/SocialScreenNative';
-import ChatScreenNative     from './src/screens/ChatScreenNative';
-import BuscandoScreenNative from './src/screens/BuscandoScreenNative';
-import LobbyScreenNative    from './src/screens/LobbyScreenNative';
+import SocialScreenNative    from './src/screens/SocialScreenNative';
+import ChatScreenNative      from './src/screens/ChatScreenNative';
+import BuscandoScreenNative  from './src/screens/BuscandoScreenNative';
+import LobbyScreenNative     from './src/screens/LobbyScreenNative';
+import JuegoScreenNative     from './src/screens/JuegoScreenNative';
+import ResultadosScreenNative from './src/screens/ResultadosScreenNative';
 
 // ─── URL DEL SERVIDOR ────────────────────────────────────────
 const SERVIDOR_URL = 'https://domino-real-rd-production.up.railway.app';
@@ -307,12 +309,25 @@ export default function App() {
                 )}
               </Stack.Screen>
 
-              {/* Partida en curso */}
+              {/* Partida en curso — pantalla completa del juego */}
               <Stack.Screen
                 name="Juego"
-                component={PantallaProxima}
+                options={{ animation: 'fade', gestureEnabled: false }}
+              >
+                {(props) => (
+                  <JuegoScreenNative {...props} jugador={jugador} socket={socket} />
+                )}
+              </Stack.Screen>
+
+              {/* Resultados post-partida */}
+              <Stack.Screen
+                name="Resultados"
                 options={{ animation: 'slide_from_bottom', gestureEnabled: false }}
-              />
+              >
+                {(props) => (
+                  <ResultadosScreenNative {...props} jugador={jugador} socket={socket} />
+                )}
+              </Stack.Screen>
 
               {/* Chat DM o de sala */}
               <Stack.Screen
