@@ -154,10 +154,12 @@ const AdService = {
     return redes[idx];
   },
 
-  /** Devuelve los IDs de una red para la plataforma actual */
+  /** Devuelve los IDs de una red para la plataforma actual, o null si no está configurada */
   _getIds(red) {
     const p = Platform.OS === 'ios' ? 'ios' : 'android';
-    return cachedConfig?.redes?.[red]?.[p] || {};
+    const ids = cachedConfig?.redes?.[red]?.[p];
+    // Si el backend sanitizó la plataforma a null, devuelve null (no intentar la red)
+    return ids || null;
   },
 
   /** ID del banner para BannerAdComponent (usa AdMob por defecto) */
@@ -191,6 +193,7 @@ const AdService = {
 
   async _mostrarInterstitialEn(red) {
     const ids = AdService._getIds(red);
+    if (!ids) return false;   // red no configurada para esta plataforma
 
     if (red === 'admob') {
       const { InterstitialAd, AdEventType } = await import('react-native-google-mobile-ads');
@@ -258,6 +261,7 @@ const AdService = {
 
   async _mostrarRewardedEn(red) {
     const ids = AdService._getIds(red);
+    if (!ids) return false;   // red no configurada para esta plataforma
 
     if (red === 'admob') {
       const { RewardedAd, RewardedAdEventType, AdEventType } =

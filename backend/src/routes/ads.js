@@ -94,12 +94,39 @@ function getConfig() {
   };
 }
 
+// ── Sanitizar IDs — si alguien olvidó pegar el ID, marca la red como deshabilitada
+//    para esa plataforma (evita que la app crashee con placeholders).
+function sanitizar(cfg) {
+  const PLACEHOLDER = /AQUI_PEGA_TU_ID|YOUR_PLACEMENT_ID/i;
+  const invalido    = (v) => !v || PLACEHOLDER.test(String(v));
+
+  for (const red of Object.keys(cfg.redes)) {
+    for (const plat of ['android', 'ios']) {
+      const ids = cfg.redes[red][plat];
+      if (!ids) continue;
+      // Si el ID principal de la red en esa plataforma es placeholder → quitarla
+      const principal = red === 'unity' ? ids.gameId : (ids.appId || ids.banner);
+      if (invalido(principal)) {
+        cfg.redes[red][plat] = null;   // desactiva esa plataforma
+      }
+    }
+    // Si quedó sin Android Y sin iOS, marcar red como deshabilitada
+    if (!cfg.redes[red].android && !cfg.redes[red].ios) {
+      cfg.redes[red].habilitada = false;
+    }
+  }
+
+  // Re-filtrar rotación: solo redes que siguen habilitadas
+  cfg.rotacion = cfg.rotacion.filter(r => cfg.redes[r]?.habilitada !== false);
+  return cfg;
+}
+
 // ── GET /api/ads/config ────────────────────────────────────────
 // Respuesta pública; no requiere token (los IDs de ads no son secretos)
 router.get('/config', (_req, res) => {
   try {
     res.set('Cache-Control', 'public, max-age=300');  // cache 5 min
-    res.json({ ok: true, config: getConfig() });
+    res.json({ ok: true, config: sanitizar(getConfig()) });
   } catch (e) {
     console.error('[ads] config error:', e);
     res.status(500).json({ ok: false, error: 'config_error' });
