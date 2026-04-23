@@ -1,45 +1,44 @@
 /**
  * AdService.js — Dominó Real RD
- * ─────────────────────────────
- * Gestión centralizada de AdMob:
- *   • Banner       → BannerAdComponent
- *   • Interstitial → entre partidas
- *   • Rewarded     → ver anuncio = +75 monedas
- * VIP: 10 000 monedas = 30 días sin anuncios (sin pasarela de pago)
+ * ─────────────────────────────────────────────────────────────────
+ * Sistema multi-red publicitario con rotación y CONFIG REMOTA.
+ *
+ * REDES SOPORTADAS:
+ *   1. AdMob                     (Google)
+ *   2. Facebook Audience Network (Meta)
+ *   3. Unity Ads                 (Unity)
+ *
+ * CLAVE: los IDs se cargan desde el backend (/api/ads/config).
+ * Cuando cambies los IDs en Railway (ENV vars) TODAS las apps
+ * instaladas los reciben automáticamente — sin recompilar.
+ *
+ * ROTACIÓN: round-robin entre redes habilitadas. Si una falla,
+ * intenta la siguiente. Cada ad se sirve de una red distinta.
+ *
+ * VIP: 10 000 monedas = 30 días sin anuncios (sin pasarela de pago).
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  InterstitialAd,
-  RewardedAd,
-  RewardedAdEventType,
-  AdEventType,
-  TestIds,
-} from 'react-native-google-mobile-ads';
+import { Platform } from 'react-native';
 
-// ── Cambiar a true cuando la app esté aprobada en AdMob ──────────
-const IS_PROD = false;
-
-// ── Monedas y límites ─────────────────────────────────────────────
+// ── Constantes públicas ───────────────────────────────────────────
 export const MONEDAS_POR_AD = 75;
 export const MAX_ADS_DIA    = 10;
-export const COSTO_VIP_MES  = 10_000;   // monedas para 30 días VIP
+export const COSTO_VIP_MES  = 10_000;
 
-// ── IDs de AdMob ──────────────────────────────────────────────────
-// Reemplazar con los reales antes de lanzar a producción:
-// https://apps.admob.com → tu app → Unidades de anuncio
-const IDS = {
-  banner:       IS_PROD ? 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX' : TestIds.BANNER,
-  interstitial: IS_PROD ? 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX' : TestIds.INTERSTITIAL,
-  rewarded:     IS_PROD ? 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX' : TestIds.REWARDED,
-};
-export const AD_IDS = IDS;
+// URL del backend — SAME origin que el resto de la app
+const SERVIDOR_URL = 'https://domino-real-rd-production.up.railway.app';
 
 // ── Keys de AsyncStorage ──────────────────────────────────────────
 const KEYS = {
-  adsHoy:   'domino_ads_hoy',    // { fecha: 'YYYY-MM-DD', count: N }
-  vipHasta: 'domino_vip_hasta',  // ISO date string
+  adsHoy:      'domino_ads_hoy',
+  vipHasta:    'domino_vip_hasta',
+  configCache: 'domino_ads_config',
+  redIndex:    'domino_ads_red_idx',   // índice actual de rotación
 };
+
+// ── Estado interno ────────────────────────────────────────────────
+let cachedConfig = null;
 
 // ── Helper fecha ──────────────────────────────────────────────────
 function hoyStr() {
@@ -49,90 +48,252 @@ function hoyStr() {
 // ─────────────────────────────────────────────────────────────────
 const AdService = {
 
-  /** Inicializar AdMob al arrancar la app */
+  // ══════════════════════════════════════════════════════════════
+  // 1. INIT — carga config remota + inicializa SDKs
+  // ══════════════════════════════════════════════════════════════
   async init() {
+    try {
+      // 1) Intentar config remota (backend)
+      cachedConfig = await AdService._cargarConfigRemota();
+
+      // 2) Fallback a cache local si backend no responde
+      if (!cachedConfig) {
+        const raw = await AsyncStorage.getItem(KEYS.configCache);
+        if (raw) cachedConfig = JSON.parse(raw);
+      }
+
+      // 3) Fallback a config embebida (solo IDs de prueba)
+      if (!cachedConfig) cachedConfig = AdService._configFallback();
+
+      // 4) Inicializar cada SDK habilitado
+      await AdService._initAdMob();
+      await AdService._initFacebook();
+      await AdService._initUnity();
+
+      console.log('[AdService] ✅ Inicializado con redes:', cachedConfig.rotacion);
+    } catch (e) {
+      console.warn('[AdService] init error:', e?.message);
+      cachedConfig = AdService._configFallback();
+    }
+  },
+
+  async _cargarConfigRemota() {
+    try {
+      const resp = await fetch(`${SERVIDOR_URL}/api/ads/config`, { timeout: 5000 });
+      const data = await resp.json();
+      if (data?.ok && data.config) {
+        await AsyncStorage.setItem(KEYS.configCache, JSON.stringify(data.config));
+        return data.config;
+      }
+    } catch (e) {
+      console.warn('[AdService] No se pudo cargar config remota:', e?.message);
+    }
+    return null;
+  },
+
+  _configFallback() {
+    // Solo IDs de prueba — nunca de producción
+    return {
+      rotacion: ['admob', 'facebook', 'unity'],
+      produccion: false,
+      version: 'fallback',
+      redes: { admob: { habilitada: true }, facebook: { habilitada: true }, unity: { habilitada: true } },
+      monedas: { porAd: 75, maxAdsDia: 10, costoVipMes: 10000 },
+    };
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // 2. INICIALIZACIÓN DE CADA SDK
+  // ══════════════════════════════════════════════════════════════
+  async _initAdMob() {
+    if (!cachedConfig?.redes?.admob?.habilitada) return;
     try {
       const mobileAds = (await import('react-native-google-mobile-ads')).default;
       await mobileAds().initialize();
-      console.log('[AdService] AdMob inicializado ✅');
-    } catch (e) {
-      console.warn('[AdService] init error:', e?.message);
-    }
+    } catch (e) { console.warn('[AdMob] no disponible:', e?.message); }
   },
 
-  /** ID del banner para BannerAdComponent */
-  getBannerId() {
-    return IDS.banner;
-  },
-
-  // ── Interstitial ─────────────────────────────────────────────
-  async mostrarInterstitial() {
+  async _initFacebook() {
+    if (!cachedConfig?.redes?.facebook?.habilitada) return;
     try {
-      const ad = InterstitialAd.createForAdRequest(IDS.interstitial, {
-        requestNonPersonalizedAdsOnly: true,
-      });
-
-      await new Promise((resolve, reject) => {
-        const unsubLoad  = ad.addAdEventListener(AdEventType.LOADED, resolve);
-        const unsubError = ad.addAdEventListener(AdEventType.ERROR,  reject);
-        ad.load();
-        // Timeout 8 s — si no carga, continuar sin bloquear
-        setTimeout(() => { unsubLoad(); unsubError(); resolve(); }, 8_000);
-      });
-
-      await ad.show();
-    } catch (e) {
-      console.warn('[AdService] interstitial:', e?.message);
-    }
+      // react-native-fbads se inicializa automáticamente
+      // pero podemos setear test devices aquí si es necesario
+      const FBAds = await import('react-native-fbads').catch(() => null);
+      if (FBAds?.AdSettings?.addTestDevice) {
+        // AdSettings.addTestDevice('...');
+      }
+    } catch (e) { console.warn('[Facebook Ads] no disponible:', e?.message); }
   },
 
-  // ── Rewarded (+monedas) ──────────────────────────────────────
+  async _initUnity() {
+    if (!cachedConfig?.redes?.unity?.habilitada) return;
+    try {
+      const UnityAds = (await import('react-native-unity-ads-next')).default;
+      const p = Platform.OS === 'ios' ? 'ios' : 'android';
+      const gameId   = cachedConfig.redes.unity[p]?.gameId;
+      const testMode = cachedConfig.redes.unity[p]?.testMode ?? true;
+      if (gameId && UnityAds?.initialize) {
+        await UnityAds.initialize(gameId, testMode);
+      }
+    } catch (e) { console.warn('[Unity Ads] no disponible:', e?.message); }
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // 3. ROTACIÓN — elige la próxima red
+  // ══════════════════════════════════════════════════════════════
+  async _siguienteRed() {
+    const redes = (cachedConfig?.rotacion || ['admob'])
+      .filter(r => cachedConfig?.redes?.[r]?.habilitada !== false);
+
+    if (redes.length === 0) return 'admob';
+
+    const raw = await AsyncStorage.getItem(KEYS.redIndex);
+    const idx = raw ? (parseInt(raw, 10) + 1) % redes.length : 0;
+    await AsyncStorage.setItem(KEYS.redIndex, String(idx));
+
+    return redes[idx];
+  },
+
+  /** Devuelve los IDs de una red para la plataforma actual */
+  _getIds(red) {
+    const p = Platform.OS === 'ios' ? 'ios' : 'android';
+    return cachedConfig?.redes?.[red]?.[p] || {};
+  },
+
+  /** ID del banner para BannerAdComponent (usa AdMob por defecto) */
+  getBannerId() {
+    // El banner es PASIVO y siempre visible → usamos una sola red
+    // (AdMob tiene el mejor banner adaptativo)
+    const ids = AdService._getIds('admob');
+    return ids.banner || 'ca-app-pub-3940256099942544/6300978111'; // test ID
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // 4. INTERSTITIAL — rotación entre 3 redes
+  // ══════════════════════════════════════════════════════════════
+  async mostrarInterstitial() {
+    const esVip = await AdService.esVIP();
+    if (esVip) return;
+
+    const redes = (cachedConfig?.rotacion || ['admob']);
+    let red = await AdService._siguienteRed();
+
+    // Intentar hasta 3 redes distintas antes de rendirse
+    for (let i = 0; i < redes.length; i++) {
+      try {
+        const ok = await AdService._mostrarInterstitialEn(red);
+        if (ok) return;
+      } catch (e) { /* probar siguiente */ }
+      red = await AdService._siguienteRed();
+    }
+    console.warn('[AdService] ninguna red pudo mostrar interstitial');
+  },
+
+  async _mostrarInterstitialEn(red) {
+    const ids = AdService._getIds(red);
+
+    if (red === 'admob') {
+      const { InterstitialAd, AdEventType } = await import('react-native-google-mobile-ads');
+      const ad = InterstitialAd.createForAdRequest(ids.interstitial, { requestNonPersonalizedAdsOnly: true });
+      await AdService._esperarLoad(ad, AdEventType);
+      await ad.show();
+      return true;
+    }
+
+    if (red === 'facebook') {
+      const { InterstitialAdManager } = await import('react-native-fbads');
+      await InterstitialAdManager.showAd(ids.interstitial);
+      return true;
+    }
+
+    if (red === 'unity') {
+      const UnityAds = (await import('react-native-unity-ads-next')).default;
+      await UnityAds.load(ids.interstitial);
+      await UnityAds.show(ids.interstitial);
+      return true;
+    }
+
+    return false;
+  },
+
+  _esperarLoad(ad, AdEventType) {
+    return new Promise((resolve, reject) => {
+      const u1 = ad.addAdEventListener(AdEventType.LOADED, () => { u1?.(); u2?.(); resolve(); });
+      const u2 = ad.addAdEventListener(AdEventType.ERROR,  (err) => { u1?.(); u2?.(); reject(err); });
+      ad.load();
+      setTimeout(() => { u1?.(); u2?.(); resolve(); }, 8_000);
+    });
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // 5. REWARDED (+ monedas) — rotación entre 3 redes
+  // ══════════════════════════════════════════════════════════════
   /**
    * @param {(monedasGanadas: number) => void} onGano
    */
   async mostrarRewarded(onGano) {
-    try {
-      const adsHoy = await AdService.getAdsHoy();
-      if (adsHoy >= MAX_ADS_DIA) {
-        console.log('[AdService] Límite diario alcanzado');
-        return;
-      }
+    const adsHoy = await AdService.getAdsHoy();
+    if (adsHoy >= MAX_ADS_DIA) {
+      console.log('[AdService] Límite diario alcanzado');
+      return;
+    }
 
-      const ad = RewardedAd.createForAdRequest(IDS.rewarded, {
-        requestNonPersonalizedAdsOnly: true,
-      });
+    const redes = (cachedConfig?.rotacion || ['admob']);
+    let red = await AdService._siguienteRed();
+    let earned = false;
 
-      await new Promise((resolve, reject) => {
-        const unsubLoad  = ad.addAdEventListener(RewardedAdEventType.LOADED, resolve);
-        const unsubError = ad.addAdEventListener(AdEventType.ERROR, reject);
-        ad.load();
-        setTimeout(() => { unsubLoad(); unsubError(); resolve(); }, 10_000);
-      });
+    for (let i = 0; i < redes.length; i++) {
+      try {
+        earned = await AdService._mostrarRewardedEn(red);
+        if (earned) break;
+      } catch (e) { /* probar siguiente */ }
+      red = await AdService._siguienteRed();
+    }
 
-      let earned = false;
-
-      await new Promise((resolve) => {
-        const unsubReward = ad.addAdEventListener(
-          RewardedAdEventType.EARNED_REWARD,
-          () => { earned = true; }
-        );
-        ad.addAdEventListener(AdEventType.CLOSED, () => {
-          unsubReward();
-          resolve();
-        });
-        ad.show().catch(resolve);
-      });
-
-      if (earned) {
-        await AdService._incrementarContador();
-        if (typeof onGano === 'function') onGano(MONEDAS_POR_AD);
-      }
-    } catch (e) {
-      console.warn('[AdService] rewarded:', e?.message);
+    if (earned) {
+      await AdService._incrementarContador();
+      if (typeof onGano === 'function') onGano(MONEDAS_POR_AD);
     }
   },
 
-  // ── Contador diario ───────────────────────────────────────────
+  async _mostrarRewardedEn(red) {
+    const ids = AdService._getIds(red);
+
+    if (red === 'admob') {
+      const { RewardedAd, RewardedAdEventType, AdEventType } =
+        await import('react-native-google-mobile-ads');
+      const ad = RewardedAd.createForAdRequest(ids.rewarded, { requestNonPersonalizedAdsOnly: true });
+      await AdService._esperarLoad(ad, AdEventType);
+
+      return new Promise((resolve) => {
+        let earned = false;
+        ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => { earned = true; });
+        ad.addAdEventListener(AdEventType.CLOSED, () => resolve(earned));
+        ad.show().catch(() => resolve(false));
+      });
+    }
+
+    if (red === 'facebook') {
+      const { RewardedVideoAdManager } = await import('react-native-fbads');
+      // FB Audience Network: showAd devuelve true si el usuario completó el video
+      const result = await RewardedVideoAdManager.showAd(ids.rewarded);
+      return !!result;
+    }
+
+    if (red === 'unity') {
+      const UnityAds = (await import('react-native-unity-ads-next')).default;
+      await UnityAds.load(ids.rewarded);
+      const result = await UnityAds.show(ids.rewarded);
+      // Unity devuelve 'COMPLETED' si el usuario vio todo el video
+      return result === 'COMPLETED' || result?.state === 'COMPLETED';
+    }
+
+    return false;
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // 6. CONTADOR DIARIO + VIP
+  // ══════════════════════════════════════════════════════════════
   async _incrementarContador() {
     try {
       const raw  = await AsyncStorage.getItem(KEYS.adsHoy);
@@ -152,7 +313,6 @@ const AdService = {
     } catch { return 0; }
   },
 
-  // ── VIP ───────────────────────────────────────────────────────
   async esVIP() {
     try {
       const hasta = await AsyncStorage.getItem(KEYS.vipHasta);
@@ -161,10 +321,6 @@ const AdService = {
     } catch { return false; }
   },
 
-  /**
-   * Activa/extiende VIP por N días
-   * @param {number} dias
-   */
   async activarVIP(dias = 30) {
     try {
       const diasRestantes = await AdService.diasVIPRestantes();

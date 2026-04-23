@@ -48,6 +48,12 @@
         }
       ],
       [
+        "react-native-fbads",
+        {
+          "iosUserTrackingPermission": "Este identificador se usará para mostrar anuncios personalizados"
+        }
+      ],
+      [
         "expo-auth-session",
         {
           "extraSchemes": ["fb915990674746311"]

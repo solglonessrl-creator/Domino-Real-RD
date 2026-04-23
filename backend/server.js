@@ -20,6 +20,7 @@ const socialRoutes = require('./src/routes/social');
 const matchmakingRoutes = require('./src/routes/matchmaking');
 const jugadoresRoutes = require('./src/routes/jugadores');
 const pagosRoutes = require('./src/routes/pagos');
+const adsRoutes = require('./src/routes/ads');
 
 // Socket handler
 const { initGameSocket } = require('./src/socket/GameSocket');
@@ -73,6 +74,7 @@ app.use('/api/social', socialRoutes);
 app.use('/api/matchmaking', matchmakingLimiter, matchmakingRoutes);
 app.use('/api/jugadores', jugadoresRoutes);
 app.use('/api/pagos', pagosRoutes); // Webhook de Stripe usa raw body, va antes de json()
+app.use('/api/ads', adsRoutes);      // Config remota de redes publicitarias
 
 // ── HEALTH CHECK ─────────────────────────────────────────────
 app.get('/health', (req, res) => {
