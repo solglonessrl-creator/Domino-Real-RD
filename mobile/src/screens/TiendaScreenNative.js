@@ -578,18 +578,9 @@ export default function TiendaScreenNative({ navigation, jugador }) {
   };
 
   const generarAvatarIA = () => {
-    setGenerandoIA(true);
-    // Simula generación IA (en producción: llamar a Stability AI o DALL-E)
-    setTimeout(() => {
-      setGenerandoIA(false);
-      Alert.alert(
-        '🎨 Avatar Pro — IA',
-        'El generador de avatares IA con tu foto está en desarrollo.\n\n' +
-        'Prompt que usamos:\n"Realistic 3D portrait of a Dominican person, casual clothes, profile picture style, soft studio lighting, 8K."\n\n' +
-        'Pronto podrás subir tu foto y convertirla en un avatar 3D dominicano. ¡Mantente atento!',
-        [{ text: '¡Espero con ansias! 🔥' }]
-      );
-    }, 2000);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // Nuevo editor completo: emoji / foto / IA (Pollinations + rewarded ad)
+    navigation.navigate('AvatarEditor');
   };
 
   // ── Tabs disponibles ────────────────────────────────────

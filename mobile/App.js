@@ -32,6 +32,7 @@ import JuegoScreenNative      from './src/screens/JuegoScreenNative';
 import ResultadosScreenNative  from './src/screens/ResultadosScreenNative';
 import ConfigScreenNative      from './src/screens/ConfigScreenNative';
 import PremiumScreenNative     from './src/screens/PremiumScreenNative';
+import AvatarEditorScreen      from './src/screens/AvatarEditorScreen';
 import AdService                from './src/services/AdService';
 
 // ─── URL DEL SERVIDOR ────────────────────────────────────────
@@ -376,6 +377,11 @@ export default function App() {
               {/* VIP Premium */}
               <Stack.Screen name="Premium" options={{ animation: 'slide_from_bottom' }}>
                 {(props) => <PremiumScreenNative {...props} jugador={jugador} />}
+              </Stack.Screen>
+
+              {/* Editor de Avatar (emoji / foto / IA con rewarded ad) */}
+              <Stack.Screen name="AvatarEditor" options={{ animation: 'slide_from_bottom' }}>
+                {(props) => <AvatarEditorScreen {...props} jugador={jugador} />}
               </Stack.Screen>
 
               {/* Tienda */}
