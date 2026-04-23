@@ -94,7 +94,7 @@ router.post('/comprar', authMiddleware, async (req, res) => {
     if (!item) return res.status(404).json({ exito: false, error: 'Item no encontrado' });
     if (item.moneda === 'gratis') return res.status(400).json({ exito: false, error: 'Este item es gratuito' });
     if (item.moneda === 'exclusivo_torneo') return res.status(403).json({ exito: false, error: 'Solo disponible por torneos' });
-    if (item.moneda === 'usd') return res.status(400).json({ exito: false, error: 'Este item requiere pago con tarjeta. Usa /pagos/stripe' });
+    if (item.moneda === 'usd') return res.status(400).json({ exito: false, error: 'Este item solo está disponible para VIP' });
 
     // Verificar que no lo tiene
     const yaLo = await db.query('SELECT id FROM inventario WHERE jugador_id=$1 AND item_id=$2', [jugadorId, itemId]);

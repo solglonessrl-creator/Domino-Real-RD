@@ -12,6 +12,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { io } from 'socket.io-client';
 
 // Pantallas existentes
@@ -35,8 +36,10 @@ import AdService                from './src/services/AdService';
 
 // ─── URL DEL SERVIDOR ────────────────────────────────────────
 const SERVIDOR_URL = 'https://domino-real-rd-production.up.railway.app';
-// Para pruebas locales:
-// const SERVIDOR_URL = 'http://192.168.1.XXX:3001';
+
+// EAS projectId (UUID real inyectado al build por `eas build`)
+const EAS_PROJECT_ID = Constants?.expoConfig?.extra?.eas?.projectId
+                    || Constants?.easConfig?.projectId;
 
 SplashScreen.preventAutoHideAsync();
 
@@ -181,6 +184,14 @@ export default function App() {
   };
 
   const conectarSocket = (token) => {
+    // Cerrar conexión previa si existe (evita fuga de conexiones)
+    setSocket(prev => {
+      if (prev) {
+        try { prev.removeAllListeners(); prev.disconnect(); } catch {}
+      }
+      return prev;
+    });
+
     const sock = io(SERVIDOR_URL, {
       auth:                 { token },
       reconnection:         true,
@@ -219,8 +230,12 @@ export default function App() {
         return;
       }
 
+      if (!EAS_PROJECT_ID) {
+        console.log('[Push] EAS projectId no disponible (dev build?)');
+        return;
+      }
       const pushTokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: 'domino-real-rd'
+        projectId: EAS_PROJECT_ID
       });
       if (pushTokenData?.data) {
         await registrarPushToken(pushTokenData.data);
@@ -251,8 +266,12 @@ export default function App() {
 
     // Registrar push token
     try {
+      if (!EAS_PROJECT_ID) {
+        console.log('[Push] EAS projectId no disponible (dev build?)');
+        return;
+      }
       const pushTokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: 'domino-real-rd'
+        projectId: EAS_PROJECT_ID
       });
       if (pushTokenData?.data) {
         await fetch(`${SERVIDOR_URL}/api/jugadores/push-token`, {

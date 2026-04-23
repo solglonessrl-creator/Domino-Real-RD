@@ -796,49 +796,35 @@ export default function TiendaScreenNative({ navigation, jugador }) {
               </LinearGradient>
             </View>
 
-            {/* Opciones de apoyo */}
+            {/* Opción única de apoyo — Stripe $2 USD */}
             <Text style={es.apoyarSeccion}>💰 APORTAR AL DESARROLLADOR</Text>
 
-            {[
-              { emoji: '☕', titulo: 'Un cafecito',        desc: 'El café dominicano del programador',   monto: '$1.00',  link: 'https://buymeacoffee.com/dominorealrd' },
-              { emoji: '🍺', titulo: 'Una Presidente',     desc: 'La cerveza merecida',                  monto: '$3.00',  link: 'https://buymeacoffee.com/dominorealrd' },
-              { emoji: '🥃', titulo: 'Un Ron Barceló',     desc: 'Para celebrar lo que hemos logrado',   monto: '$5.00',  link: 'https://buymeacoffee.com/dominorealrd' },
-              { emoji: '🏆', titulo: 'Campeón del apoyo',  desc: 'Tu nombre en los créditos del juego',  monto: '$10.00', link: 'https://buymeacoffee.com/dominorealrd' },
-            ].map((op, i) => (
-              <TouchableOpacity
-                key={i}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  Linking.openURL(op.link);
-                }}
-                style={es.apoyarOpcion}
-              >
-                <Text style={{ fontSize: 32 }}>{op.emoji}</Text>
-                <View style={{ flex: 1, marginLeft: 14 }}>
-                  <Text style={es.apoyarOpTitulo}>{op.titulo}</Text>
-                  <Text style={es.apoyarOpDesc}>{op.desc}</Text>
-                </View>
-                <View style={es.apoyarMontoBadge}>
-                  <Text style={es.apoyarMontoTexto}>{op.monto}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-
-            {/* Monedas bonus por apoyar */}
-            <View style={es.bonusCard}>
-              <Text style={es.bonusTitulo}>🎁 ¿Aportas? Recibes monedas de vuelta</Text>
-              <Text style={es.bonusDesc}>
-                Cada aporte incluye monedas bonus para usar en el juego.
-                ¡Un gracias de nuestra parte! 🇩🇴
-              </Text>
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-                {[['$1','500🪙'],['$3','2000🪙'],['$5','4000🪙'],['$10','10000🪙']].map(([p,m])=>(
-                  <View key={p} style={es.bonusChip}>
-                    <Text style={{ color: C.oro, fontWeight:'bold', fontSize:11 }}>{p}</Text>
-                    <Text style={{ color:`${C.blanco}80`, fontSize:9 }}>{m}</Text>
-                  </View>
-                ))}
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                Linking.openURL('https://buy.stripe.com/00w14o0ibfQxeOd7Sn33W09');
+              }}
+              style={es.apoyarOpcion}
+              activeOpacity={0.85}
+            >
+              <Text style={{ fontSize: 32 }}>☕</Text>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={es.apoyarOpTitulo}>Un cafecito para el dev</Text>
+                <Text style={es.apoyarOpDesc}>Pago seguro con Stripe 🔒 · Tarjeta o Apple/Google Pay</Text>
               </View>
+              <View style={es.apoyarMontoBadge}>
+                <Text style={es.apoyarMontoTexto}>$2.00</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Mensaje de gratitud */}
+            <View style={es.bonusCard}>
+              <Text style={es.bonusTitulo}>🙏 ¡Gracias por apoyar el proyecto!</Text>
+              <Text style={es.bonusDesc}>
+                Con tu apoyo podemos mantener los servidores, mejorar el juego y
+                agregar más contenido dominicano 🇩🇴{'\n\n'}
+                Cada aporte cuenta — ¡de verdad!
+              </Text>
             </View>
 
             {/* Stats del juego */}

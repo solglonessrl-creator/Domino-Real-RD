@@ -19,7 +19,6 @@ const tiendaRoutes = require('./src/routes/tienda');
 const socialRoutes = require('./src/routes/social');
 const matchmakingRoutes = require('./src/routes/matchmaking');
 const jugadoresRoutes = require('./src/routes/jugadores');
-const pagosRoutes = require('./src/routes/pagos');
 const adsRoutes = require('./src/routes/ads');
 
 // Socket handler
@@ -73,7 +72,6 @@ app.use('/api/tienda', tiendaLimiter, tiendaRoutes);
 app.use('/api/social', socialRoutes);
 app.use('/api/matchmaking', matchmakingLimiter, matchmakingRoutes);
 app.use('/api/jugadores', jugadoresRoutes);
-app.use('/api/pagos', pagosRoutes); // Webhook de Stripe usa raw body, va antes de json()
 app.use('/api/ads', adsRoutes);      // Config remota de redes publicitarias
 
 // ── HEALTH CHECK ─────────────────────────────────────────────
@@ -87,8 +85,11 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ── DB DIAGNOSTIC (temporal) ──────────────────────────────────
+// ── DB DIAGNOSTIC (protegido con token secreto) ───────────────
 app.get('/db-check', async (req, res) => {
+  if (req.query.token !== process.env.DB_CHECK_TOKEN) {
+    return res.status(404).json({ error: 'Not found' });
+  }
   const { Pool } = require('pg');
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -96,17 +97,8 @@ app.get('/db-check', async (req, res) => {
   });
   try {
     const r1 = await pool.query('SELECT NOW() as time');
-    const r2 = await pool.query(`
-      SELECT column_name FROM information_schema.columns
-      WHERE table_name = 'jugadores'
-      ORDER BY ordinal_position
-    `);
     await pool.end();
-    res.json({
-      ok: true,
-      dbTime: r1.rows[0].time,
-      columnas_jugadores: r2.rows.map(r => r.column_name)
-    });
+    res.json({ ok: true, dbTime: r1.rows[0].time });
   } catch (err) {
     res.json({ ok: false, error: err.message, code: err.code });
   }

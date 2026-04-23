@@ -142,6 +142,14 @@ function JugadorContrario({ nombre, cantidadFichas, equipo, posicion, esTurno })
 export default function JuegoScreenNative({ route, navigation }) {
   const { roomId, jugadores = [], modo = 'online', socket } = route.params || {};
 
+  // ── SAFETY: si entramos sin socket (app reiniciada), volver al inicio ──
+  useEffect(() => {
+    if (!socket || !roomId) {
+      console.warn('[JuegoScreen] socket/roomId faltante — volviendo al Main');
+      navigation.replace('Main');
+    }
+  }, [socket, roomId]);
+
   // ── ESTADO DEL JUEGO ──────────────────────────────────────
   const [estadoJuego,  setEstadoJuego]  = useState(null);     // estado del servidor
   const [misManos,     setMisManos]     = useState([]);        // fichas privadas

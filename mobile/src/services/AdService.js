@@ -165,9 +165,11 @@ const AdService = {
   /** ID del banner para BannerAdComponent (usa AdMob por defecto) */
   getBannerId() {
     // El banner es PASIVO y siempre visible → usamos una sola red
-    // (AdMob tiene el mejor banner adaptativo)
-    const ids = AdService._getIds('admob');
-    return ids.banner || 'ca-app-pub-3940256099942544/6300978111'; // test ID
+    // (AdMob tiene el mejor banner adaptativo).
+    // Null-guard: si la config aún no cargó, caemos al ID de prueba
+    // oficial de Google para no crashear al renderizar.
+    const ids = AdService._getIds('admob') || {};
+    return ids.banner || 'ca-app-pub-3940256099942544/6300978111';
   },
 
   // ══════════════════════════════════════════════════════════════

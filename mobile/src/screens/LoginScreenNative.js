@@ -48,7 +48,8 @@ export default function LoginScreenNative({ navigation, onLoginExitoso }) {
   const [googleRequest, googleResponse, googlePrompt] = Google.useAuthRequest({
     webClientId:     GOOGLE_WEB_CLIENT_ID,
     androidClientId: GOOGLE_ANDROID_CLIENT_ID,
-    iosClientId:     GOOGLE_IOS_CLIENT_ID,
+    // Omitir iosClientId si es null — si se pasa null, expo-auth-session crashea
+    ...(GOOGLE_IOS_CLIENT_ID ? { iosClientId: GOOGLE_IOS_CLIENT_ID } : {}),
     scopes: ['profile', 'email'],
   });
 

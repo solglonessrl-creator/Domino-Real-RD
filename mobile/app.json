@@ -36,7 +36,10 @@
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
         "INTERNET",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "com.google.android.gms.permission.AD_ID",
+        "ACCESS_NETWORK_STATE",
+        "WAKE_LOCK"
       ]
     },
     "plugins": [
