@@ -30,6 +30,8 @@ import LobbyScreenNative     from './src/screens/LobbyScreenNative';
 import JuegoScreenNative      from './src/screens/JuegoScreenNative';
 import ResultadosScreenNative  from './src/screens/ResultadosScreenNative';
 import ConfigScreenNative      from './src/screens/ConfigScreenNative';
+import PremiumScreenNative     from './src/screens/PremiumScreenNative';
+import AdService                from './src/services/AdService';
 
 // ─── URL DEL SERVIDOR ────────────────────────────────────────
 const SERVIDOR_URL = 'https://domino-real-rd-production.up.railway.app';
@@ -154,7 +156,7 @@ export default function App() {
   const [jugador,  setJugador]  = useState(null);
   const [socket,   setSocket]   = useState(null);
 
-  useEffect(() => { inicializar(); }, []);
+  useEffect(() => { inicializar(); AdService.init(); }, []);
 
   const inicializar = async () => {
     try {
@@ -350,6 +352,11 @@ export default function App() {
               {/* Configuración */}
               <Stack.Screen name="Config" options={{ animation: 'slide_from_right' }}>
                 {(props) => <ConfigScreenNative {...props} jugador={jugador} />}
+              </Stack.Screen>
+
+              {/* VIP Premium */}
+              <Stack.Screen name="Premium" options={{ animation: 'slide_from_bottom' }}>
+                {(props) => <PremiumScreenNative {...props} jugador={jugador} />}
               </Stack.Screen>
 
               {/* Tienda */}

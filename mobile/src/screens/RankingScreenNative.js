@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import BannerAdComponent from '../components/BannerAdComponent';
 
 const API_URL = 'https://domino-real-rd-production.up.railway.app/api';
 const COLORES = { azulRD: '#002D62', rojoRD: '#CF142B', blanco: '#FFFFFF', oro: '#FFD700', negro: '#0A0A0A', grisOscuro: '#1A1A2E' };
@@ -116,6 +117,9 @@ export default function RankingScreenNative({ navigation, jugador }) {
           }
         />
       )}
+
+      {/* Banner publicitario inferior */}
+      <BannerAdComponent />
     </View>
   );
 }

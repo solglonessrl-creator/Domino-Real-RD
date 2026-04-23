@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import BannerAdComponent from '../components/BannerAdComponent';
 
 const API_URL = 'https://domino-real-rd-production.up.railway.app/api';
 
@@ -568,6 +569,9 @@ export default function SocialScreenNative({ navigation, jugador, socket }) {
           )}
         </View>
       )}
+
+      {/* Banner publicitario inferior */}
+      <BannerAdComponent />
 
     </View>
   );

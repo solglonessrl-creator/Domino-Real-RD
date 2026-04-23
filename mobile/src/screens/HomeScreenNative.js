@@ -11,6 +11,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import BannerAdComponent from '../components/BannerAdComponent';
+import AdService from '../services/AdService';
 
 const { width } = Dimensions.get('window');
 
@@ -33,6 +35,12 @@ const modosBotones = [
 export default function HomeScreenNative({ navigation, jugador, socket }) {
   const [monedas,    setMonedas]    = useState(jugador?.monedas || 500);
   const [bonoDiario, setBonoDiario] = useState(true);
+  const [viendoAd,   setViendoAd]  = useState(false);
+  const [adsHoy,     setAdsHoy]    = useState(0);
+
+  useEffect(() => {
+    AdService.getAdsHoy().then(setAdsHoy);
+  }, []);
 
   const handleBoton = (id) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -69,6 +77,10 @@ export default function HomeScreenNative({ navigation, jugador, socket }) {
 
       case 'tienda':
         navigation.navigate('Tienda');
+        break;
+
+      case 'premium':
+        navigation.navigate('Premium');
         break;
 
       default:
@@ -143,6 +155,42 @@ export default function HomeScreenNative({ navigation, jugador, socket }) {
           </TouchableOpacity>
         )}
 
+        {/* Banner Ganar Monedas viendo anuncio */}
+        <TouchableOpacity
+          style={[
+            styles.bannerAd,
+            viendoAd && { opacity: 0.5 }
+          ]}
+          activeOpacity={0.85}
+          disabled={viendoAd || adsHoy >= 10}
+          onPress={async () => {
+            if (adsHoy >= 10) return;
+            setViendoAd(true);
+            await AdService.mostrarRewarded((monedasGanadas) => {
+              setMonedas(prev => prev + monedasGanadas);
+              setAdsHoy(prev => prev + 1);
+            });
+            setViendoAd(false);
+          }}
+        >
+          <Text style={{ fontSize: 28 }}>📺</Text>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.bannerTitulo}>
+              {adsHoy >= 10 ? 'Límite diario alcanzado' : 'Ver anuncio → +75 🪙'}
+            </Text>
+            <Text style={styles.bannerSub}>
+              {adsHoy >= 10
+                ? 'Vuelve mañana para más monedas'
+                : `${10 - adsHoy} anuncios disponibles hoy · ${(10 - adsHoy) * 75}🪙 posibles`}
+            </Text>
+          </View>
+          {adsHoy < 10 && (
+            <View style={styles.adBadge}>
+              <Text style={styles.adBadgeTexto}>{10 - adsHoy}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
         {/* Grid de modos */}
         <View style={styles.gridTitulo}>
           <Text style={styles.gridTituloTexto}>MODOS DE JUEGO</Text>
@@ -186,8 +234,31 @@ export default function HomeScreenNative({ navigation, jugador, socket }) {
           </LinearGradient>
         </TouchableOpacity>
 
+        {/* Botón VIP Premium */}
+        <TouchableOpacity
+          style={styles.bannerVip}
+          activeOpacity={0.85}
+          onPress={() => handleBoton('premium')}
+        >
+          <LinearGradient
+            colors={['#7B1FA2', '#9C27B0', '#E040FB']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={styles.bannerVipGrad}
+          >
+            <Text style={{ fontSize: 26 }}>👑</Text>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.bannerTitulo}>Hazte VIP — Sin anuncios</Text>
+              <Text style={styles.bannerSub}>10,000 🪙 = 30 días VIP · Tabla doble · Emojis exclusivos</Text>
+            </View>
+            <Text style={styles.bannerFlecha}>→</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
         <View style={{ height: 20 }} />
       </ScrollView>
+
+      {/* Banner publicitario en la parte inferior */}
+      <BannerAdComponent />
     </View>
   );
 }
@@ -226,5 +297,18 @@ const styles = StyleSheet.create({
   bannerTorneo: { margin: 16, marginTop: 10, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: '#CE93D8' },
   bannerTorneoGrad: { flexDirection: 'row', alignItems: 'center', padding: 16 },
   botonInscribir: { backgroundColor: COLORES.oro, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16 },
-  botonInscribirTexto: { color: COLORES.negro, fontWeight: 'bold', fontSize: 13 }
+  botonInscribirTexto: { color: COLORES.negro, fontWeight: 'bold', fontSize: 13 },
+  bannerAd: {
+    flexDirection: 'row', alignItems: 'center',
+    marginHorizontal: 16, marginBottom: 8,
+    backgroundColor: '#1A237E', borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: '#3949AB'
+  },
+  adBadge: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: COLORES.oro, alignItems: 'center', justifyContent: 'center'
+  },
+  adBadgeTexto: { color: COLORES.negro, fontWeight: 'bold', fontSize: 13 },
+  bannerVip: { marginHorizontal: 16, marginBottom: 8, borderRadius: 14, overflow: 'hidden' },
+  bannerVipGrad: { flexDirection: 'row', alignItems: 'center', padding: 14 },
 });

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import AdService from '../services/AdService';
 
 const C = {
   azul:       '#002D62',
@@ -116,6 +117,15 @@ export default function ResultadosScreenNative({ route, navigation }) {
     }
 
     setTimeout(() => setMostrarDetalle(true), 800);
+
+    // Interstitial entre partidas (solo si no es VIP)
+    // Se lanza 2 s después para no interrumpir la animación de entrada
+    const esVip = await AdService.esVIP();
+    if (!esVip) {
+      setTimeout(() => {
+        AdService.mostrarInterstitial().catch(() => {});
+      }, 2000);
+    }
   }, []);
 
   const compartir = async () => {
