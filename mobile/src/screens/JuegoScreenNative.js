@@ -177,6 +177,24 @@ export default function JuegoScreenNative({ route, navigation }) {
   const [barajando,       setBarajando]       = useState(false);
   const [mensaje,         setMensaje]         = useState('');
 
+  // ── TEMA DE BARRIO ────────────────────────────────────────
+  const [fondoBarrio, setFondoBarrio] = useState(['#0A0A2E','#1A1A2E']);
+
+  const FONDOS_BARRIO = {
+    los_minas:       ['#1A0800','#3E1F00','#5D2E00'],
+    villa_consuelo:  ['#0A0A2E','#002D62','#1565C0'],
+    gazcue:          ['#0D1B4A','#1A237E','#283593'],
+    cristo_rey:      ['#2E003E','#4A148C','#6A1B9A'],
+    capotillo:       ['#2A1500','#E65100','#F57F17'],
+    la_cienaga:      ['#001F3F','#01579B','#0288D1'],
+    gualey:          ['#0A2000','#1B5E20','#2E7D32'],
+    villa_juana:     ['#1A0A00','#4E342E','#6D4C41'],
+    simon_bolivar:   ['#1A0000','#B71C1C','#CF142B'],
+    ensanche_ozama:  ['#050505','#1A1A1A','#2E2E2E'],
+    los_guaricanos:  ['#0A1500','#1B5E20','#33691E'],
+    villa_francisca: ['#200010','#880E4F','#C2185B'],
+  };
+
   const chatRef      = useRef(null);
   const tableRef     = useRef(null);
   const appState     = useRef(AppState.currentState);
@@ -186,6 +204,11 @@ export default function JuegoScreenNative({ route, navigation }) {
 
   // ── EFECTO: Conectar Socket ───────────────────────────────
   useEffect(() => {
+    // Cargar fondo de barrio seleccionado
+    AsyncStorage.getItem('domino_mesa_activa').then(barrio => {
+      if (barrio && FONDOS_BARRIO[barrio]) setFondoBarrio(FONDOS_BARRIO[barrio]);
+    });
+
     if (!socket || !roomId) return;
 
     // Identificar mi posición en la partida
@@ -578,7 +601,13 @@ export default function JuegoScreenNative({ route, navigation }) {
 
   return (
     <View style={estilos.contenedor}>
-      <StatusBar barStyle="light-content" backgroundColor={C.azul} />
+      {/* Fondo de barrio dinámico */}
+      <LinearGradient
+        colors={fondoBarrio}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+      />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* ── HEADER: Marcador ─────────────────────────────── */}
       <LinearGradient colors={[C.azul, C.oscuro]} style={estilos.header}>
