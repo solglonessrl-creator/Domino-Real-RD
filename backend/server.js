@@ -33,11 +33,30 @@ const { authLimiter, matchmakingLimiter, tiendaLimiter, adLimiter } = require('.
 const app = express();
 const server = http.createServer(app);
 
+// ── CORS: orígenes permitidos ────────────────────────────────
+// Acepta lista separada por comas en FRONTEND_URL, más defaults de dev y Vercel
+const ORIGENES_PERMITIDOS = [
+  ...(process.env.FRONTEND_URL || '').split(',').map(s => s.trim()).filter(Boolean),
+  'http://localhost:3000',
+  'http://localhost:19006'
+];
+const REGEX_VERCEL = /^https:\/\/.*\.vercel\.app$/;
+
+function corsOriginCheck(origin, callback) {
+  // Permitir llamadas sin origin (apps móviles, curl, server-to-server)
+  if (!origin) return callback(null, true);
+  if (ORIGENES_PERMITIDOS.includes(origin)) return callback(null, true);
+  if (REGEX_VERCEL.test(origin)) return callback(null, true);
+  console.warn('[CORS] Origen bloqueado:', origin);
+  callback(new Error('Origen no permitido por CORS'));
+}
+
 // ── CONFIGURACIÓN SOCKET.IO ──────────────────────────────────
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || '*',
-    methods: ['GET', 'POST']
+    origin: corsOriginCheck,
+    methods: ['GET', 'POST'],
+    credentials: true
   },
   pingTimeout: 60000,
   pingInterval: 25000
@@ -49,7 +68,7 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: corsOriginCheck,
   credentials: true
 }));
 
