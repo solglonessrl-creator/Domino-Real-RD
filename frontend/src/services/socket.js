@@ -5,7 +5,11 @@
 
 import { io } from 'socket.io-client';
 
-const SERVIDOR_URL = process.env.REACT_APP_SERVIDOR_URL || 'http://localhost:3001';
+// URL del backend: usa la env var en dev, Railway en producción
+const SERVIDOR_URL = process.env.REACT_APP_SERVIDOR_URL
+  || (process.env.NODE_ENV === 'production'
+        ? 'https://domino-real-rd-production.up.railway.app'
+        : 'http://localhost:3001');
 
 let socket = null;
 
