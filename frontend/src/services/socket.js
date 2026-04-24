@@ -101,8 +101,11 @@ export const AuthAPI = {
   registro: (nombre, email, password) => apiFetch('/auth/registro', {
     method: 'POST', body: JSON.stringify({ nombre, email, password })
   }),
-  loginFacebook: (accessToken, userId, nombre, email) => apiFetch('/auth/facebook', {
-    method: 'POST', body: JSON.stringify({ accessToken, userId, nombre, email })
+  loginFacebook: (accessToken, socialId, nombre, email, foto) => apiFetch('/auth/facebook', {
+    method: 'POST', body: JSON.stringify({ accessToken, socialId, nombre, email, foto })
+  }),
+  loginGoogle: (accessToken, socialId, nombre, email, foto) => apiFetch('/auth/google', {
+    method: 'POST', body: JSON.stringify({ accessToken, socialId, nombre, email, foto })
   }),
   loginInvitado: (nombre) => apiFetch('/auth/invitado', {
     method: 'POST', body: JSON.stringify({ nombre })

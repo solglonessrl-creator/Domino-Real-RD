@@ -17,5 +17,25 @@
   <body>
     <noscript>Necesitas JavaScript para usar Domino Real RD.</noscript>
     <div id="root"></div>
+
+    <!-- Facebook SDK -->
+    <script>
+      window.fbAsyncInit = function() {
+        if (window.FB && window.__FB_APP_ID) {
+          FB.init({
+            appId: window.__FB_APP_ID,
+            cookie: true,
+            xfbml: false,
+            version: 'v19.0'
+          });
+        }
+      };
+      // FB App ID (mismo que la app móvil)
+      window.__FB_APP_ID = '915990674746311';
+    </script>
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/es_LA/sdk.js"></script>
+
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
   </body>
 </html>
