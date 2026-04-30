@@ -59,15 +59,18 @@ const Ficha = ({ ficha, seleccionada, onClick, enMesa = false }) => {
     display: 'flex',
     flexDirection: esVertical ? 'column' : 'row',
     cursor: onClick ? 'pointer' : 'default',
-    transform: seleccionada ? 'translateY(-12px) scale(1.05)' : 'none',
-    transition: 'all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1)',
+    transform: seleccionada ? 'translateY(-12px) scale(1.05)' : (ficha.x !== undefined ? `translate(-50%, -50%) rotate(${ficha.rotation}deg)` : 'none'),
+    transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
     boxShadow: seleccionada
       ? `0 15px 25px rgba(0,0,0,0.4), inset -2px -4px 6px rgba(0,0,0,0.1), inset 2px 4px 6px rgba(255,255,255,0.7), 0 0 0 3px ${COLORES.oro}`
       : `0 6px 10px rgba(0,0,0,0.3), inset -2px -4px 5px rgba(0,0,0,0.15), inset 2px 4px 5px rgba(255,255,255,0.8)`,
     userSelect: 'none',
-    position: 'relative',
+    position: ficha.x !== undefined ? 'absolute' : 'relative',
+    left: ficha.x !== undefined ? `calc(50% + ${ficha.x}px)` : 'auto',
+    top: ficha.y !== undefined ? `calc(50% + ${ficha.y}px)` : 'auto',
     overflow: 'hidden',
-    border: '1px solid #D4C4A8'
+    border: '1px solid #D4C4A8',
+    zIndex: ficha.x !== undefined ? ficha.timestamp || 1 : 1
   };
 
   const mitadEstilo = {
@@ -298,6 +301,128 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
   const [resultadoFinal, setResultadoFinal] = useState(null);
 
   const mensajeRef = useRef('');
+
+  // 1. Algoritmo de Layout 2D (Snake)
+  const fichasMesa = useMemo(() => {
+    if (!estado || !estado.mesa || estado.mesa.length === 0) return [];
+
+    const W = 40; 
+    const H = 80; 
+    const SPACE = 4;
+
+    const result = [];
+    let tipRight = { x: 0, y: 0, dir: 'R', num: null };
+    let tipLeft = { x: 0, y: 0, dir: 'L', num: null };
+
+    // Limites de la pantalla (aprox) para empezar a doblar la culebra
+    const BOUND_RIGHT = 220; 
+    const BOUND_CENTER_RIGHT = 60;
+    const BOUND_LEFT = -220;
+    const BOUND_CENTER_LEFT = -60;
+
+    estado.mesa.forEach((ficha, index) => {
+      let x, y, rot;
+      
+      if (index === 0) {
+        x = 0; y = 0;
+        if (ficha.esDoble) {
+          rot = 0;
+          tipRight = { x: W/2 + SPACE, y: 0, dir: 'R', num: ficha.derecha };
+          tipLeft = { x: -W/2 - SPACE, y: 0, dir: 'L', num: ficha.izquierda };
+        } else {
+          rot = -90;
+          tipRight = { x: H/2 + SPACE, y: 0, dir: 'R', num: ficha.derecha };
+          tipLeft = { x: -H/2 - SPACE, y: 0, dir: 'L', num: ficha.izquierda };
+        }
+        result.push({ ...ficha, x, y, rotation: rot });
+        return;
+      }
+
+      const isRight = ficha.posicion === 'derecha';
+      let tip = isRight ? tipRight : tipLeft;
+      let { x: tx, y: ty, dir, num } = tip;
+
+      // Lógica de Giro (Snake)
+      if (isRight) {
+        if (dir === 'R' && tx > BOUND_RIGHT) dir = 'D';
+        else if (dir === 'L' && tx < BOUND_CENTER_RIGHT) dir = 'D';
+      } else {
+        if (dir === 'L' && tx < BOUND_LEFT) dir = 'U';
+        else if (dir === 'R' && tx > BOUND_CENTER_LEFT) dir = 'U';
+      }
+      
+      const matchIzquierda = ficha.izquierda === num;
+      let wHalf = W/2;
+      let hHalf = H/2;
+      
+      if (ficha.esDoble) {
+        if (dir === 'R') {
+          rot = 0; x = tx + wHalf; y = ty;
+          tip.x = x + wHalf + SPACE; tip.y = y;
+        } else if (dir === 'L') {
+          rot = 0; x = tx - wHalf; y = ty;
+          tip.x = x - wHalf - SPACE; tip.y = y;
+        } else if (dir === 'D') {
+          rot = 90; x = tx; y = ty + wHalf;
+          tip.x = x; tip.y = y + wHalf + SPACE;
+          dir = (tip.dir === 'R') ? 'L' : 'R';
+        } else if (dir === 'U') {
+          rot = 90; x = tx; y = ty - wHalf;
+          tip.x = x; tip.y = y - wHalf - SPACE;
+          dir = (tip.dir === 'L') ? 'R' : 'L';
+        }
+      } else {
+        if (dir === 'R') {
+          rot = matchIzquierda ? -90 : 90;
+          x = tx + hHalf; y = ty;
+          tip.x = x + hHalf + SPACE; tip.y = y;
+        } else if (dir === 'L') {
+          rot = matchIzquierda ? 90 : -90;
+          x = tx - hHalf; y = ty;
+          tip.x = x - hHalf - SPACE; tip.y = y;
+        } else if (dir === 'D') {
+          rot = matchIzquierda ? 0 : 180;
+          x = tx; y = ty + hHalf;
+          tip.x = x; tip.y = y + hHalf + SPACE;
+          dir = (tip.dir === 'R') ? 'L' : 'R';
+        } else if (dir === 'U') {
+          rot = matchIzquierda ? 180 : 0;
+          x = tx; y = ty - hHalf;
+          tip.x = x; tip.y = y - hHalf - SPACE;
+          dir = (tip.dir === 'L') ? 'R' : 'L';
+        }
+      }
+      
+      tip.dir = dir;
+      tip.num = matchIzquierda ? ficha.derecha : ficha.izquierda;
+
+      if (isRight) tipRight = tip;
+      else tipLeft = tip;
+
+      result.push({ ...ficha, x, y, rotation: rot });
+    });
+
+    return result;
+  }, [estado?.mesa]);
+
+  // 2. Calcular escala dinámica para que todas las fichas quepan en pantalla
+  const scale = useMemo(() => {
+    if (fichasMesa.length === 0) return 1;
+    let minX = 0, maxX = 0, minY = 0, maxY = 0;
+    fichasMesa.forEach(f => {
+      if (f.x < minX) minX = f.x;
+      if (f.x > maxX) maxX = f.x;
+      if (f.y < minY) minY = f.y;
+      if (f.y > maxY) maxY = f.y;
+    });
+    // Añadir margen
+    const width = maxX - minX + 160;
+    const height = maxY - minY + 160;
+    // Asumimos contenedor de 600x300 en desktop aprox
+    const scaleX = Math.min(1, 600 / width);
+    const scaleY = Math.min(1, 300 / height);
+    return Math.min(scaleX, scaleY);
+  }, [fichasMesa]);
 
   // Conectar a los eventos del socket
   useEffect(() => {
@@ -538,22 +663,24 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
       }}>
         {/* Fichas en la mesa */}
         <div style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 4,
-          maxWidth: '90%',
-          justifyContent: 'center',
-          alignItems: 'center'
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          transform: `scale(${scale})`,
+          transition: 'transform 0.5s ease',
+          transformOrigin: 'center center'
         }}>
-          {estado.mesa?.map((ficha, idx) => (
-            <Ficha key={idx} ficha={ficha} enMesa />
+          {fichasMesa.map((ficha, idx) => (
+            <Ficha key={ficha.id || idx} ficha={ficha} enMesa />
           ))}
 
-          {estado.mesa?.length === 0 && (
+          {fichasMesa.length === 0 && (
             <div style={{
-              color: COLORES.blanco + '40',
-              fontSize: 16,
-              textAlign: 'center'
+              position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+              color: COLORES.blanco + '80',
+              fontSize: 18,
+              textAlign: 'center',
+              fontWeight: 'bold'
             }}>
               🎲 Esperando primera ficha...
             </div>
