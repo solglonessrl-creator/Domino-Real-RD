@@ -682,6 +682,8 @@ function iniciarPartida(io, roomId, sala) {
     mensaje: '¡El dominó empieza! ¡A jugar!'
   });
 
+  enviarManosPrivadas(io, roomId, sala);
+
   io.to(roomId).emit('arbitro_narration', {
     texto:    '¡Que empiece el juego! Hoy se juega dominó dominicano. Los equipos: Equipo Azul (Jugadores 1 y 3) vs Equipo Rojo (Jugadores 2 y 4). ¡Primer equipo en llegar a 200 puntos gana! ¡Dale!',
     narrador: 'Don Fello'
@@ -709,6 +711,8 @@ function iniciarPartidaConIA(io, roomId, sala, dificultadIA = 'medio') {
     estado:  estadoPublico(sala.estado),
     mensaje: `¡Partida contra IA (${dificultadIA})! ¡Demuestra de qué estás hecho!`
   });
+
+  enviarManosPrivadas(io, roomId, sala);
 
   if (sala.estado.turno !== 0) {
     setTimeout(() => ejecutarTurnoIA(io, roomId, sala, sala.estado.turno), 1500);
@@ -834,6 +838,8 @@ function procesarFinRonda(io, roomId, sala) {
           puntosTotales: sala.puntosTotales
         });
 
+        enviarManosPrivadas(io, roomId, sala);
+
         if (sala.bots && sala.bots[sala.estado.turno]) {
           setTimeout(() => ejecutarTurnoIA(io, roomId, sala, sala.estado.turno), 1500);
         }
@@ -847,6 +853,15 @@ function procesarFinRonda(io, roomId, sala) {
         io.to(roomId).emit('chat_estado', { habilitado: false });
       }
     }, 8000);
+  }
+}
+
+function enviarManosPrivadas(io, roomId, sala) {
+  for (const [socketId, j] of Object.entries(sala.jugadores)) {
+    if (!j.esBot) {
+      const fichas = sala.estado.manos[`jugador${j.posicion}`];
+      io.to(socketId).emit('mano_privada', { fichas });
+    }
   }
 }
 
