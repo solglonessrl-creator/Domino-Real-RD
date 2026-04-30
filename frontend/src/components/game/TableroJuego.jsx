@@ -309,12 +309,14 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
     const W = 40; 
     const H = 80; 
     const SPACE = 4;
+    const DIST = 40 + SPACE; // Distancia entre centros de mitades consecutivas
 
     const result = [];
-    let tipRight = { x: 0, y: 0, dir: 'R', num: null };
-    let tipLeft = { x: 0, y: 0, dir: 'L', num: null };
+    
+    // tip representa la mitad "libre" de la ficha en el extremo
+    let tipRight = { cx: 0, cy: 0, dir: 'R', num: null };
+    let tipLeft = { cx: 0, cy: 0, dir: 'L', num: null };
 
-    // Limites de la pantalla (aprox) para empezar a doblar la culebra
     const BOUND_RIGHT = 220; 
     const BOUND_CENTER_RIGHT = 60;
     const BOUND_LEFT = -220;
@@ -327,12 +329,12 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
         x = 0; y = 0;
         if (ficha.esDoble) {
           rot = 0;
-          tipRight = { x: W/2 + SPACE, y: 0, dir: 'R', num: ficha.derecha };
-          tipLeft = { x: -W/2 - SPACE, y: 0, dir: 'L', num: ficha.izquierda };
+          tipRight = { cx: 0, cy: 0, dir: 'R', num: ficha.derecha };
+          tipLeft = { cx: 0, cy: 0, dir: 'L', num: ficha.izquierda };
         } else {
           rot = -90;
-          tipRight = { x: H/2 + SPACE, y: 0, dir: 'R', num: ficha.derecha };
-          tipLeft = { x: -H/2 - SPACE, y: 0, dir: 'L', num: ficha.izquierda };
+          tipRight = { cx: 20, cy: 0, dir: 'R', num: ficha.derecha };
+          tipLeft = { cx: -20, cy: 0, dir: 'L', num: ficha.izquierda };
         }
         result.push({ ...ficha, x, y, rotation: rot });
         return;
@@ -340,59 +342,62 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
 
       const isRight = ficha.posicion === 'derecha';
       let tip = isRight ? tipRight : tipLeft;
-      let { x: tx, y: ty, dir, num } = tip;
+      let { cx: prevCx, cy: prevCy, dir, num } = tip;
 
       // Lógica de Giro (Snake)
       if (isRight) {
-        if (dir === 'R' && tx > BOUND_RIGHT) dir = 'D';
-        else if (dir === 'L' && tx < BOUND_CENTER_RIGHT) dir = 'D';
+        if (dir === 'R' && prevCx > BOUND_RIGHT) dir = 'D';
+        else if (dir === 'L' && prevCx < BOUND_CENTER_RIGHT) dir = 'D';
       } else {
-        if (dir === 'L' && tx < BOUND_LEFT) dir = 'U';
-        else if (dir === 'R' && tx > BOUND_CENTER_LEFT) dir = 'U';
+        if (dir === 'L' && prevCx < BOUND_LEFT) dir = 'U';
+        else if (dir === 'R' && prevCx > BOUND_CENTER_LEFT) dir = 'U';
       }
       
       const matchIzquierda = ficha.izquierda === num;
-      let wHalf = W/2;
-      let hHalf = H/2;
-      
+      let matchCx, matchCy, unmatchCx, unmatchCy;
+
       if (ficha.esDoble) {
+        // Doble se coloca cruzada
         if (dir === 'R') {
-          rot = 0; x = tx + wHalf; y = ty;
-          tip.x = x + wHalf + SPACE; tip.y = y;
+          rot = 0; x = prevCx + DIST; y = prevCy;
         } else if (dir === 'L') {
-          rot = 0; x = tx - wHalf; y = ty;
-          tip.x = x - wHalf - SPACE; tip.y = y;
+          rot = 0; x = prevCx - DIST; y = prevCy;
         } else if (dir === 'D') {
-          rot = 90; x = tx; y = ty + wHalf;
-          tip.x = x; tip.y = y + wHalf + SPACE;
-          dir = (tip.dir === 'R') ? 'L' : 'R';
+          rot = 90; x = prevCx; y = prevCy + DIST;
+          dir = tip.dir === 'R' ? 'L' : 'R';
         } else if (dir === 'U') {
-          rot = 90; x = tx; y = ty - wHalf;
-          tip.x = x; tip.y = y - wHalf - SPACE;
-          dir = (tip.dir === 'L') ? 'R' : 'L';
+          rot = 90; x = prevCx; y = prevCy - DIST;
+          dir = tip.dir === 'L' ? 'R' : 'L';
         }
+        unmatchCx = x;
+        unmatchCy = y;
       } else {
+        // Normal se coloca a lo largo de dir
         if (dir === 'R') {
+          matchCx = prevCx + DIST; matchCy = prevCy;
+          unmatchCx = matchCx + 40; unmatchCy = matchCy;
           rot = matchIzquierda ? -90 : 90;
-          x = tx + hHalf; y = ty;
-          tip.x = x + hHalf + SPACE; tip.y = y;
         } else if (dir === 'L') {
+          matchCx = prevCx - DIST; matchCy = prevCy;
+          unmatchCx = matchCx - 40; unmatchCy = matchCy;
           rot = matchIzquierda ? 90 : -90;
-          x = tx - hHalf; y = ty;
-          tip.x = x - hHalf - SPACE; tip.y = y;
         } else if (dir === 'D') {
+          matchCx = prevCx; matchCy = prevCy + DIST;
+          unmatchCx = matchCx; unmatchCy = matchCy + 40;
           rot = matchIzquierda ? 0 : 180;
-          x = tx; y = ty + hHalf;
-          tip.x = x; tip.y = y + hHalf + SPACE;
-          dir = (tip.dir === 'R') ? 'L' : 'R';
+          dir = tip.dir === 'R' ? 'L' : 'R';
         } else if (dir === 'U') {
+          matchCx = prevCx; matchCy = prevCy - DIST;
+          unmatchCx = matchCx; unmatchCy = matchCy - 40;
           rot = matchIzquierda ? 180 : 0;
-          x = tx; y = ty - hHalf;
-          tip.x = x; tip.y = y - hHalf - SPACE;
-          dir = (tip.dir === 'L') ? 'R' : 'L';
+          dir = tip.dir === 'L' ? 'R' : 'L';
         }
+        x = (matchCx + unmatchCx) / 2;
+        y = (matchCy + unmatchCy) / 2;
       }
       
+      tip.cx = unmatchCx;
+      tip.cy = unmatchCy;
       tip.dir = dir;
       tip.num = matchIzquierda ? ficha.derecha : ficha.izquierda;
 
