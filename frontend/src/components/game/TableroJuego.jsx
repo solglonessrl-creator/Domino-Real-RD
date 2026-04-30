@@ -26,10 +26,16 @@ const COLORES = {
 /**
  * Componente de una ficha individual del dominó
  */
-const Ficha = ({ ficha, seleccionada, onClick, enMesa = false, orientacion = 'horizontal' }) => {
+const Ficha = ({ ficha, seleccionada, onClick, enMesa = false }) => {
   if (!ficha) return null;
 
   const { izquierda, derecha, esDoble } = ficha;
+
+  // En la mano siempre verticales, en mesa podemos usar flex-wrap
+  const esVertical = true; 
+
+  const width = enMesa ? 40 : 60;
+  const height = enMesa ? 80 : 120;
 
   const puntos = (numero) => {
     const patrones = {
@@ -39,30 +45,29 @@ const Ficha = ({ ficha, seleccionada, onClick, enMesa = false, orientacion = 'ho
       3: [[25, 25], [50, 50], [75, 75]],
       4: [[25, 25], [75, 25], [25, 75], [75, 75]],
       5: [[25, 25], [75, 25], [50, 50], [25, 75], [75, 75]],
-      6: [[25, 20], [75, 20], [25, 50], [75, 50], [25, 80], [75, 80]]
+      6: [[25, 25], [75, 25], [25, 50], [75, 50], [25, 75], [75, 75]]
     };
     return patrones[numero] || [];
   };
 
   const estiloFicha = {
-    width: enMesa ? 50 : 60,
-    height: enMesa ? 100 : 120,
-    backgroundColor: COLORES.fichaMarfil,
+    width: width,
+    height: height,
+    backgroundColor: '#F9F6EE',
+    backgroundImage: 'linear-gradient(135deg, #FFFAF0 0%, #F3E5AB 100%)',
     borderRadius: 8,
-    border: seleccionada
-      ? `3px solid ${COLORES.oro}`
-      : `2px solid ${COLORES.fichaMarfilOscuro}`,
     display: 'flex',
-    flexDirection: esDoble ? 'column' : 'row',
+    flexDirection: esVertical ? 'column' : 'row',
     cursor: onClick ? 'pointer' : 'default',
-    transform: seleccionada ? 'translateY(-8px)' : 'none',
-    transition: 'all 0.2s ease',
+    transform: seleccionada ? 'translateY(-12px) scale(1.05)' : 'none',
+    transition: 'all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1)',
     boxShadow: seleccionada
-      ? `0 8px 20px ${COLORES.oro}80`
-      : `0 3px 8px ${COLORES.sombra}`,
+      ? `0 15px 25px rgba(0,0,0,0.4), inset -2px -4px 6px rgba(0,0,0,0.1), inset 2px 4px 6px rgba(255,255,255,0.7), 0 0 0 3px ${COLORES.oro}`
+      : `0 6px 10px rgba(0,0,0,0.3), inset -2px -4px 5px rgba(0,0,0,0.15), inset 2px 4px 5px rgba(255,255,255,0.8)`,
     userSelect: 'none',
     position: 'relative',
-    overflow: 'hidden'
+    overflow: 'hidden',
+    border: '1px solid #D4C4A8'
   };
 
   const mitadEstilo = {
@@ -74,25 +79,28 @@ const Ficha = ({ ficha, seleccionada, onClick, enMesa = false, orientacion = 'ho
   };
 
   const divisorEstilo = {
-    width: esDoble ? '80%' : '2px',
-    height: esDoble ? '2px' : '80%',
-    backgroundColor: COLORES.fichaMarfilOscuro,
-    alignSelf: 'center'
+    width: esVertical ? '85%' : '3px',
+    height: esVertical ? '3px' : '85%',
+    backgroundColor: '#1A1A1A',
+    alignSelf: 'center',
+    boxShadow: 'inset 0px 1px 2px rgba(255,255,255,0.3), 0px 1px 1px rgba(0,0,0,0.5)',
+    borderRadius: 2
   };
 
-  const renderPuntos = (numero, color = '#1A1A1A') => {
+  const renderPuntos = (numero) => {
     return puntos(numero).map(([x, y], i) => (
       <div
         key={i}
         style={{
           position: 'absolute',
-          width: enMesa ? 6 : 8,
-          height: enMesa ? 6 : 8,
+          width: enMesa ? 7 : 11,
+          height: enMesa ? 7 : 11,
           borderRadius: '50%',
-          backgroundColor: color,
+          backgroundColor: '#111',
           left: `${x}%`,
           top: `${y}%`,
-          transform: 'translate(-50%, -50%)'
+          transform: 'translate(-50%, -50%)',
+          boxShadow: 'inset 1px 2px 3px rgba(0,0,0,0.8), 0.5px 1px 1px rgba(255,255,255,0.8)'
         }}
       />
     ));

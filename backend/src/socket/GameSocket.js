@@ -159,7 +159,7 @@ function initGameSocket(io) {
       const esDomino  = sala.estado.estado === 'terminada' && sala.estado.resultado?.razon !== 'tranque';
       const esCapicua = sala.estado.resultado?.capicua;
       const narracion = arbitro.narrarJugada(
-        { ...resultado.jugada, jugadorId, capicua: esCapicua, esDomino },
+        { ficha: resultado.jugada, lado, jugadorId, capicua: esCapicua, esDomino },
         sala.estado,
         Object.values(sala.jugadores)
       );
@@ -754,7 +754,7 @@ function ejecutarTurnoIA(io, roomId, sala, jugadorId) {
       const esCapicua = sala.estado.resultado?.capicua;
 
       const narracion     = arbitro.narrarJugada(
-        { ...resultado.jugada, jugadorId, capicua: esCapicua, esDomino },
+        { ficha: resultado.jugada, lado: decision.lado, jugadorId, capicua: esCapicua, esDomino },
         sala.estado,
         Object.values(sala.jugadores)
       );
