@@ -5,7 +5,7 @@
  * Muestra: mesa, fichas, mano del jugador, scoreboard, árbitro
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import sonidos from '../../services/SonidosDomino';
 
 // Colores de la bandera dominicana
