@@ -34,8 +34,8 @@ const Ficha = ({ ficha, seleccionada, onClick, enMesa = false }) => {
   // En la mano siempre verticales, en mesa podemos usar flex-wrap
   const esVertical = true; 
 
-  const width = enMesa ? 40 : 60;
-  const height = enMesa ? 80 : 120;
+  const width = enMesa ? 40 : 56;
+  const height = enMesa ? 80 : 112;
 
   const puntos = (numero) => {
     const patrones = {
@@ -62,8 +62,10 @@ const Ficha = ({ ficha, seleccionada, onClick, enMesa = false }) => {
     transform: seleccionada ? 'translateY(-12px) scale(1.05)' : (ficha.x !== undefined ? `translate(-50%, -50%) rotate(${ficha.rotation}deg)` : 'none'),
     transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
     boxShadow: seleccionada
-      ? `0 15px 25px rgba(0,0,0,0.4), inset -2px -4px 6px rgba(0,0,0,0.1), inset 2px 4px 6px rgba(255,255,255,0.7), 0 0 0 3px ${COLORES.oro}`
-      : `0 6px 10px rgba(0,0,0,0.3), inset -2px -4px 5px rgba(0,0,0,0.15), inset 2px 4px 5px rgba(255,255,255,0.8)`,
+      ? `0 20px 30px rgba(0,0,0,0.5), inset -2px -4px 8px rgba(0,0,0,0.15), inset 2px 4px 8px rgba(255,255,255,0.8), 0 0 0 4px ${COLORES.oro}`
+      : (enMesa 
+          ? `0 6px 10px rgba(0,0,0,0.3), inset -2px -4px 5px rgba(0,0,0,0.15), inset 2px 4px 5px rgba(255,255,255,0.8)`
+          : `0 10px 16px rgba(0,0,0,0.4), inset -3px -6px 8px rgba(0,0,0,0.15), inset 3px 6px 8px rgba(255,255,255,0.9), 0 0 0 1px rgba(0,0,0,0.1)`),
     userSelect: 'none',
     position: ficha.x !== undefined ? 'absolute' : 'relative',
     left: ficha.x !== undefined ? `calc(50% + ${ficha.x}px)` : 'auto',
@@ -96,8 +98,8 @@ const Ficha = ({ ficha, seleccionada, onClick, enMesa = false }) => {
         key={i}
         style={{
           position: 'absolute',
-          width: enMesa ? 7 : 11,
-          height: enMesa ? 7 : 11,
+          width: enMesa ? 7 : 10,
+          height: enMesa ? 7 : 10,
           borderRadius: '50%',
           backgroundColor: '#111',
           left: `${x}%`,
@@ -132,28 +134,28 @@ const Ficha = ({ ficha, seleccionada, onClick, enMesa = false }) => {
 const Scoreboard = ({ equipos, puntosTotales, ronda }) => (
   <div style={{
     display: 'flex',
-    gap: 16,
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: '8px 16px',
     backgroundColor: COLORES.negro,
-    borderRadius: 12,
-    border: `1px solid ${COLORES.azulRD}40`
+    borderBottom: `2px solid ${COLORES.oro}`
   }}>
     <div style={{ textAlign: 'center' }}>
-      <div style={{ color: COLORES.azulRD, fontSize: 12, fontWeight: 'bold' }}>⚡ EQUIPO AZUL</div>
-      <div style={{ color: COLORES.blanco, fontSize: 28, fontWeight: 'bold' }}>
+      <div style={{ color: COLORES.azulRD, fontSize: 12, fontWeight: 'bold' }}>🛡️ EQUIPO AZUL</div>
+      <div style={{ color: COLORES.blanco, fontSize: 24, fontWeight: 'bold' }}>
         {puntosTotales?.equipo0 || 0}
       </div>
       <div style={{ color: COLORES.blanco + '80', fontSize: 10 }}>/ 200</div>
     </div>
 
-    <div style={{ textAlign: 'center', padding: '0 8px' }}>
-      <div style={{ color: COLORES.oro, fontSize: 11, marginBottom: 4 }}>Ronda {ronda || 1}</div>
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ color: COLORES.oro, fontSize: 11, marginBottom: 2 }}>Ronda {ronda || 1}</div>
       <div style={{ color: COLORES.blanco + '60', fontSize: 18 }}>VS</div>
     </div>
 
     <div style={{ textAlign: 'center' }}>
       <div style={{ color: COLORES.rojoRD, fontSize: 12, fontWeight: 'bold' }}>🔥 EQUIPO ROJO</div>
-      <div style={{ color: COLORES.blanco, fontSize: 28, fontWeight: 'bold' }}>
+      <div style={{ color: COLORES.blanco, fontSize: 24, fontWeight: 'bold' }}>
         {puntosTotales?.equipo1 || 0}
       </div>
       <div style={{ color: COLORES.blanco + '80', fontSize: 10 }}>/ 200</div>
@@ -232,13 +234,19 @@ const ManoJugador = ({ fichas, fichaSeleccionada, onSeleccionar, puedePasar, onP
   <div style={{
     backgroundColor: COLORES.negro,
     borderTop: `3px solid ${COLORES.azulRD}`,
-    padding: 16,
+    padding: '12px 8px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: 12
+    gap: 8,
+    boxShadow: `0 -4px 12px ${COLORES.sombra}`
   }}>
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+    {fichaSeleccionada && (
+      <div style={{ color: COLORES.oro, fontSize: 13, fontWeight: 'bold', animation: 'pulse 1.5s infinite' }}>
+        👇 Confirma la jugada en la mesa 👇
+      </div>
+    )}
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
       {fichas?.map(ficha => (
         <Ficha
           key={ficha.id}
@@ -346,11 +354,11 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
 
       // Lógica de Giro (Snake)
       if (isRight) {
-        if (dir === 'R' && prevCx > BOUND_RIGHT) dir = 'D';
-        else if (dir === 'L' && prevCx < BOUND_CENTER_RIGHT) dir = 'D';
+        if (dir === 'R' && prevCx > BOUND_RIGHT && !ficha.esDoble) dir = 'D';
+        else if (dir === 'L' && prevCx < BOUND_CENTER_RIGHT && !ficha.esDoble) dir = 'D';
       } else {
-        if (dir === 'L' && prevCx < BOUND_LEFT) dir = 'U';
-        else if (dir === 'R' && prevCx > BOUND_CENTER_LEFT) dir = 'U';
+        if (dir === 'L' && prevCx < BOUND_LEFT && !ficha.esDoble) dir = 'D';
+        else if (dir === 'R' && prevCx > BOUND_CENTER_LEFT && !ficha.esDoble) dir = 'D';
       }
       
       const matchIzquierda = ficha.izquierda === num;
@@ -727,37 +735,67 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
         )}
 
         {/* Selector de lado cuando hay ficha seleccionada */}
-        {fichaSeleccionada && esMiTurno && estado.mesa?.length > 0 && (
-          <div style={{
-            position: 'absolute',
-            bottom: 20,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex',
-            gap: 16
-          }}>
-            <button
-              onClick={() => handleColocarFicha('izquierda')}
-              style={{
-                padding: '10px 20px', backgroundColor: COLORES.azulRD,
-                color: COLORES.blanco, border: 'none', borderRadius: 20,
-                fontSize: 14, fontWeight: 'bold', cursor: 'pointer'
-              }}
-            >
-              ← Izquierda ({estado.extremoIzquierdo})
-            </button>
-            <button
-              onClick={() => handleColocarFicha('derecha')}
-              style={{
-                padding: '10px 20px', backgroundColor: COLORES.rojoRD,
-                color: COLORES.blanco, border: 'none', borderRadius: 20,
-                fontSize: 14, fontWeight: 'bold', cursor: 'pointer'
-              }}
-            >
-              Derecha ({estado.extremoDerecho}) →
-            </button>
-          </div>
-        )}
+        {(() => {
+          if (!fichaSeleccionada || !esMiTurno || estado.mesa?.length === 0) return null;
+          
+          const encajaIzq = fichaSeleccionada.izquierda === estado.extremoIzquierdo || fichaSeleccionada.derecha === estado.extremoIzquierdo;
+          const encajaDer = fichaSeleccionada.izquierda === estado.extremoDerecho || fichaSeleccionada.derecha === estado.extremoDerecho;
+
+          if (!encajaIzq && !encajaDer) {
+            return (
+              <div style={{
+                position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)',
+                backgroundColor: 'rgba(200,0,0,0.8)', padding: '12px 24px', borderRadius: '24px',
+                color: 'white', fontWeight: 'bold', zIndex: 10
+              }}>
+                ❌ Esta ficha no encaja
+              </div>
+            );
+          }
+
+          return (
+            <div style={{
+              position: 'absolute',
+              bottom: 40,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              gap: 12,
+              backgroundColor: 'rgba(0,0,0,0.8)',
+              padding: '12px',
+              borderRadius: '24px',
+              boxShadow: `0 4px 12px ${COLORES.sombra}`,
+              zIndex: 10
+            }}>
+              {encajaIzq && (
+                <button
+                  onClick={() => handleColocarFicha('izquierda')}
+                  style={{
+                    padding: '12px 24px', backgroundColor: COLORES.azulRD,
+                    color: COLORES.blanco, border: '2px solid white', borderRadius: 20,
+                    fontSize: 15, fontWeight: 'bold', cursor: 'pointer',
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.3)'
+                  }}
+                >
+                  ← Poner en ({estado.extremoIzquierdo})
+                </button>
+              )}
+              {encajaDer && (
+                <button
+                  onClick={() => handleColocarFicha('derecha')}
+                  style={{
+                    padding: '12px 24px', backgroundColor: COLORES.rojoRD,
+                    color: COLORES.blanco, border: '2px solid white', borderRadius: 20,
+                    fontSize: 15, fontWeight: 'bold', cursor: 'pointer',
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.3)'
+                  }}
+                >
+                  Poner en ({estado.extremoDerecho}) →
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Primera jugada: solo botón de colocar */}
         {fichaSeleccionada && esMiTurno && estado.mesa?.length === 0 && (
@@ -789,14 +827,14 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
       {/* Chat */}
       <div style={{
         backgroundColor: COLORES.grisOscuro,
-        padding: '8px 16px',
+        padding: '6px 12px',
         borderTop: `1px solid ${COLORES.azulRD}40`,
-        maxHeight: 100,
+        maxHeight: 80,
         overflow: 'hidden'
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: 2, marginBottom: 8 }}>
-          {chat.slice(-3).reverse().map((msg, i) => (
-            <div key={i} style={{ color: COLORES.blanco + 'CC', fontSize: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: 2, marginBottom: 4 }}>
+          {chat.slice(-2).reverse().map((msg, i) => (
+            <div key={i} style={{ color: COLORES.blanco + 'CC', fontSize: 11 }}>
               <span style={{ color: COLORES.oro, fontWeight: 'bold' }}>{msg.nombre}: </span>
               {msg.mensaje}
             </div>
@@ -812,10 +850,10 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
             width: '100%',
             backgroundColor: COLORES.negro,
             border: `1px solid ${COLORES.azulRD}40`,
-            borderRadius: 8,
-            padding: '6px 12px',
+            borderRadius: 6,
+            padding: '4px 8px',
             color: COLORES.blanco,
-            fontSize: 13,
+            fontSize: 12,
             outline: 'none',
             boxSizing: 'border-box'
           }}
