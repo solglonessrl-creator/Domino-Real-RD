@@ -53,25 +53,25 @@ const Ficha = ({ ficha, seleccionada, onClick, enMesa = false }) => {
   const estiloFicha = {
     width: width,
     height: height,
-    backgroundColor: '#F9F6EE',
-    backgroundImage: 'linear-gradient(135deg, #FFFAF0 0%, #F3E5AB 100%)',
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    backgroundImage: 'linear-gradient(135deg, #FFFFFF 0%, #F8F8F8 100%)',
+    borderRadius: 6,
     display: 'flex',
     flexDirection: esVertical ? 'column' : 'row',
     cursor: onClick ? 'pointer' : 'default',
     transform: seleccionada ? 'translateY(-12px) scale(1.05)' : (ficha.x !== undefined ? `translate(-50%, -50%) rotate(${ficha.rotation}deg)` : 'none'),
     transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
     boxShadow: seleccionada
-      ? `0 20px 30px rgba(0,0,0,0.5), inset -2px -4px 8px rgba(0,0,0,0.15), inset 2px 4px 8px rgba(255,255,255,0.8), 0 0 0 4px ${COLORES.oro}`
+      ? `0 20px 30px rgba(0,0,0,0.5), inset -1px -2px 4px rgba(0,0,0,0.1), inset 1px 2px 4px rgba(255,255,255,1), 0 0 0 3px ${COLORES.oro}`
       : (enMesa 
-          ? `0 6px 10px rgba(0,0,0,0.3), inset -2px -4px 5px rgba(0,0,0,0.15), inset 2px 4px 5px rgba(255,255,255,0.8)`
-          : `0 10px 16px rgba(0,0,0,0.4), inset -3px -6px 8px rgba(0,0,0,0.15), inset 3px 6px 8px rgba(255,255,255,0.9), 0 0 0 1px rgba(0,0,0,0.1)`),
+          ? `0 4px 6px rgba(0,0,0,0.25), inset -1px -2px 2px rgba(0,0,0,0.05), inset 1px 2px 2px rgba(255,255,255,1)`
+          : `0 8px 12px rgba(0,0,0,0.3), inset -1px -2px 3px rgba(0,0,0,0.05), inset 1px 2px 3px rgba(255,255,255,1)`),
     userSelect: 'none',
     position: ficha.x !== undefined ? 'absolute' : 'relative',
     left: ficha.x !== undefined ? `calc(50% + ${ficha.x}px)` : 'auto',
     top: ficha.y !== undefined ? `calc(50% + ${ficha.y}px)` : 'auto',
     overflow: 'hidden',
-    border: '1px solid #D4C4A8',
+    border: '1px solid #D0D0D0',
     zIndex: ficha.x !== undefined ? ficha.timestamp || 1 : 1
   };
 
@@ -84,12 +84,12 @@ const Ficha = ({ ficha, seleccionada, onClick, enMesa = false }) => {
   };
 
   const divisorEstilo = {
-    width: esVertical ? '85%' : '3px',
-    height: esVertical ? '3px' : '85%',
-    backgroundColor: '#1A1A1A',
+    width: esVertical ? '90%' : '1px',
+    height: esVertical ? '1px' : '90%',
+    backgroundColor: '#E0E0E0',
     alignSelf: 'center',
-    boxShadow: 'inset 0px 1px 2px rgba(255,255,255,0.3), 0px 1px 1px rgba(0,0,0,0.5)',
-    borderRadius: 2
+    boxShadow: 'none',
+    borderRadius: 0
   };
 
   const renderPuntos = (numero) => {
@@ -98,14 +98,14 @@ const Ficha = ({ ficha, seleccionada, onClick, enMesa = false }) => {
         key={i}
         style={{
           position: 'absolute',
-          width: enMesa ? 7 : 10,
-          height: enMesa ? 7 : 10,
+          width: enMesa ? 8 : 11,
+          height: enMesa ? 8 : 11,
           borderRadius: '50%',
-          backgroundColor: '#111',
+          backgroundColor: '#0F0F0F',
           left: `${x}%`,
           top: `${y}%`,
           transform: 'translate(-50%, -50%)',
-          boxShadow: 'inset 1px 2px 3px rgba(0,0,0,0.8), 0.5px 1px 1px rgba(255,255,255,0.8)'
+          boxShadow: 'inset 1px 2px 2px rgba(0,0,0,0.6)'
         }}
       />
     ));
@@ -136,7 +136,7 @@ const Scoreboard = ({ equipos, puntosTotales, ronda }) => (
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '8px 16px',
+    padding: '4px 16px',
     backgroundColor: COLORES.negro,
     borderBottom: `2px solid ${COLORES.oro}`
   }}>
@@ -234,11 +234,11 @@ const ManoJugador = ({ fichas, fichaSeleccionada, onSeleccionar, puedePasar, onP
   <div style={{
     backgroundColor: COLORES.negro,
     borderTop: `3px solid ${COLORES.azulRD}`,
-    padding: '12px 8px',
+    padding: '8px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     boxShadow: `0 -4px 12px ${COLORES.sombra}`
   }}>
     {fichaSeleccionada && (
@@ -310,109 +310,76 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
 
   const mensajeRef = useRef('');
 
-  // 1. Algoritmo de Layout 2D (Snake)
+  // 1. Algoritmo de Layout 2D Matemático de Cuadrícula (Grid)
   const fichasMesa = useMemo(() => {
     if (!estado || !estado.mesa || estado.mesa.length === 0) return [];
 
-    const W = 40; 
-    const H = 80; 
-    const SPACE = 4;
-    const DIST = 40 + SPACE; // Distancia entre centros de mitades consecutivas
-
     const result = [];
+    const UNIT = 40; // 1 unidad de grilla = 40px (medio dominó)
     
-    // tip representa la mitad "libre" de la ficha en el extremo
-    let tipRight = { cx: 0, cy: 0, dir: 'R', num: null };
-    let tipLeft = { cx: 0, cy: 0, dir: 'L', num: null };
+    let curR = { x: 0, y: 0, dx: 1, dy: 0, num: null };
+    let curL = { x: 0, y: 0, dx: -1, dy: 0, num: null };
 
-    const BOUND_RIGHT = 220; 
-    const BOUND_CENTER_RIGHT = 60;
-    const BOUND_LEFT = -220;
-    const BOUND_CENTER_LEFT = -60;
+    // Límites para hacer la curva S de forma segura (en unidades)
+    const MAX_X = 6.5;
+    const MIN_X = -6.5;
 
     estado.mesa.forEach((ficha, index) => {
-      let x, y, rot;
-      
       if (index === 0) {
-        x = 0; y = 0;
         if (ficha.esDoble) {
-          rot = 0;
-          tipRight = { cx: 0, cy: 0, dir: 'R', num: ficha.derecha };
-          tipLeft = { cx: 0, cy: 0, dir: 'L', num: ficha.izquierda };
+          result.push({ ...ficha, x: 0, y: 0, rotation: 0 });
+          curR = { x: 0, y: 0, dx: 1, dy: 0, num: ficha.derecha };
+          curL = { x: 0, y: 0, dx: -1, dy: 0, num: ficha.izquierda };
         } else {
-          rot = -90;
-          tipRight = { cx: 20, cy: 0, dir: 'R', num: ficha.derecha };
-          tipLeft = { cx: -20, cy: 0, dir: 'L', num: ficha.izquierda };
+          result.push({ ...ficha, x: 0, y: 0, rotation: -90 });
+          curR = { x: 0.5, y: 0, dx: 1, dy: 0, num: ficha.derecha };
+          curL = { x: -0.5, y: 0, dx: -1, dy: 0, num: ficha.izquierda };
         }
-        result.push({ ...ficha, x, y, rotation: rot });
         return;
       }
 
       const isRight = ficha.posicion === 'derecha';
-      let tip = isRight ? tipRight : tipLeft;
-      let { cx: prevCx, cy: prevCy, dir, num } = tip;
+      let cur = isRight ? curR : curL;
 
-      // Lógica de Giro (Snake)
-      if (isRight) {
-        if (dir === 'R' && prevCx > BOUND_RIGHT && !ficha.esDoble) dir = 'D';
-        else if (dir === 'L' && prevCx < BOUND_CENTER_RIGHT && !ficha.esDoble) dir = 'D';
-      } else {
-        if (dir === 'L' && prevCx < BOUND_LEFT && !ficha.esDoble) dir = 'D';
-        else if (dir === 'R' && prevCx > BOUND_CENTER_LEFT && !ficha.esDoble) dir = 'D';
+      // Planificar giros de la serpiente
+      if (!ficha.esDoble) {
+        if (cur.dx === 1 && cur.x >= MAX_X) {
+           cur.dx = 0; cur.dy = 1;
+        } else if (cur.dx === -1 && cur.x <= MIN_X) {
+           cur.dx = 0; cur.dy = 1;
+        } else if (cur.dy === 1) { 
+           cur.dx = isRight ? -1 : 1; 
+           cur.dy = 0;
+        }
       }
-      
-      const matchIzquierda = ficha.izquierda === num;
-      let matchCx, matchCy, unmatchCx, unmatchCy;
+
+      const matchIzquierda = ficha.izquierda === cur.num;
+      let rot, fx, fy;
 
       if (ficha.esDoble) {
-        // Doble se coloca cruzada
-        if (dir === 'R') {
-          rot = 0; x = prevCx + DIST; y = prevCy;
-        } else if (dir === 'L') {
-          rot = 0; x = prevCx - DIST; y = prevCy;
-        } else if (dir === 'D') {
-          rot = 90; x = prevCx; y = prevCy + DIST;
-          dir = tip.dir === 'R' ? 'L' : 'R';
-        } else if (dir === 'U') {
-          rot = 90; x = prevCx; y = prevCy - DIST;
-          dir = tip.dir === 'L' ? 'R' : 'L';
-        }
-        unmatchCx = x;
-        unmatchCy = y;
+         // Ocupa una celda en la grilla y se pone transversal
+         cur.x += cur.dx; cur.y += cur.dy;
+         fx = cur.x; fy = cur.y;
+         rot = (cur.dx !== 0) ? 0 : 90;
       } else {
-        // Normal se coloca a lo largo de dir
-        if (dir === 'R') {
-          matchCx = prevCx + DIST; matchCy = prevCy;
-          unmatchCx = matchCx + 40; unmatchCy = matchCy;
-          rot = matchIzquierda ? -90 : 90;
-        } else if (dir === 'L') {
-          matchCx = prevCx - DIST; matchCy = prevCy;
-          unmatchCx = matchCx - 40; unmatchCy = matchCy;
-          rot = matchIzquierda ? 90 : -90;
-        } else if (dir === 'D') {
-          matchCx = prevCx; matchCy = prevCy + DIST;
-          unmatchCx = matchCx; unmatchCy = matchCy + 40;
-          rot = matchIzquierda ? 0 : 180;
-          dir = tip.dir === 'R' ? 'L' : 'R';
-        } else if (dir === 'U') {
-          matchCx = prevCx; matchCy = prevCy - DIST;
-          unmatchCx = matchCx; unmatchCy = matchCy - 40;
-          rot = matchIzquierda ? 180 : 0;
-          dir = tip.dir === 'L' ? 'R' : 'L';
-        }
-        x = (matchCx + unmatchCx) / 2;
-        y = (matchCy + unmatchCy) / 2;
+         // Ficha normal: ocupa dos celdas a lo largo
+         const p1x = cur.x + cur.dx; const p1y = cur.y + cur.dy;
+         const p2x = cur.x + cur.dx*2; const p2y = cur.y + cur.dy*2;
+         fx = (p1x + p2x) / 2;
+         fy = (p1y + p2y) / 2;
+         cur.x = p2x; cur.y = p2y; 
+
+         if (cur.dx === 1) rot = matchIzquierda ? -90 : 90;
+         else if (cur.dx === -1) rot = matchIzquierda ? 90 : -90;
+         else if (cur.dy === 1) rot = matchIzquierda ? 0 : 180;
+         else rot = 0;
       }
-      
-      tip.cx = unmatchCx;
-      tip.cy = unmatchCy;
-      tip.dir = dir;
-      tip.num = matchIzquierda ? ficha.derecha : ficha.izquierda;
 
-      if (isRight) tipRight = tip;
-      else tipLeft = tip;
+      cur.num = matchIzquierda ? ficha.derecha : ficha.izquierda;
 
-      result.push({ ...ficha, x, y, rotation: rot });
+      if (isRight) curR = cur; else curL = cur;
+
+      result.push({ ...ficha, x: fx * UNIT, y: fy * UNIT, rotation: rot });
     });
 
     return result;
@@ -633,7 +600,7 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '8px 16px',
+        padding: '4px 16px',
         backgroundColor: COLORES.grisOscuro,
         borderBottom: `2px solid ${COLORES.azulRD}`
       }}>

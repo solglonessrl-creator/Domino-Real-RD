@@ -293,18 +293,11 @@ class DominoEngine {
 
   /**
    * Encuentra el siguiente jugador que puede jugar
+   * NOTA: Eliminado el auto-salto. Ahora el jugador debe presionar "Pasar"
+   * explícitamente para emular la experiencia real del dominó y no robar el turno.
    */
   siguienteTurnoValido(estado, turnoActual) {
-    let turno = turnoActual;
-    let intentos = 0;
-
-    while (!this.puedeJugar(estado, turno) && intentos < 4) {
-      estado.pasadas[turno]++;
-      turno = (turno + 1) % 4;
-      intentos++;
-    }
-
-    return turno;
+    return turnoActual;
   }
 
   /**
