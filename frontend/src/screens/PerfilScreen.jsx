@@ -23,7 +23,7 @@ const LOGROS_DISPONIBLES = [
   { id: 'diez_victorias',     icono: '🥇', nombre: '10 Victorias',         descripcion: 'Acumula 10 victorias' },
   { id: 'cien_victorias',     icono: '👑', nombre: '100 Victorias',        descripcion: 'Leyenda del dominó' },
   { id: 'primera_capicua',    icono: '🎉', nombre: 'Primera Capicúa',      descripcion: 'Haz tu primera capicúa' },
-  { id: 'capicua_maestro',    icono: '🎲', nombre: 'Maestro de Capicúas',  descripcion: '10 capicúas en total' },
+  { id: 'capicua_maestro',    icono: '🁣', nombre: 'Maestro de Capicúas',  descripcion: '10 capicúas en total' },
   { id: 'racha_cinco',        icono: '🔥', nombre: 'Racha de 5',           descripcion: '5 victorias seguidas' },
   { id: 'plata',              icono: '🥈', nombre: 'Liga Plata',           descripcion: 'Alcanza la Liga Plata' },
   { id: 'oro',                icono: '🥇', nombre: 'Liga Oro',             descripcion: 'Alcanza la Liga Oro' },
@@ -74,7 +74,7 @@ const PerfilScreen = ({ jugadorActual, onVolver, onNavegar }) => {
   };
 
   const compartirPerfil = () => {
-    const texto = `🎲 ¡Juego dominó dominicano en Dominó Real RD! Soy ${perfil?.nombre} con ${perfil?.elo} ELO ${liga?.icono}. ¡Únete con mi código ${codigoReferido?.codigo} y gana 500 monedas! 🇩🇴`;
+    const texto = `🁣 ¡Juego dominó dominicano en Dominó Real RD! Soy ${perfil?.nombre} con ${perfil?.elo} ELO ${liga?.icono}. ¡Únete con mi código ${codigoReferido?.codigo} y gana 500 monedas! 🇩🇴`;
     if (navigator.share) {
       navigator.share({ text: texto });
     } else if (navigator.clipboard) {

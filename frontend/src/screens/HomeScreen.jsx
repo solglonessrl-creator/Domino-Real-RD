@@ -113,7 +113,7 @@ const HomeScreen = ({ jugador, onNavegar }) => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: 28 }}>🎲</span>
+              <span style={{ fontSize: 32, transform: 'rotate(45deg)', color: COLORES.blanco }}>🁣</span>
               <div>
                 <div style={{ color: COLORES.blanco, fontSize: 22, fontWeight: 'bold', letterSpacing: 1 }}>
                   Dominó Real RD

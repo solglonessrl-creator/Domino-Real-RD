@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Ícono Dominó Real RD</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 24px; font-family: Arial, sans-serif; padding: 30px; }
+    h2 { color: #FFD700; font-size: 22px; }
+    canvas { border-radius: 16px; box-shadow: 0 0 50px rgba(255,215,0,0.35); }
+    .btns { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+    button { padding: 14px 32px; font-size: 16px; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; }
+    .b1 { background: #FFD700; color: #000; }
+    .b2 { background: #1877F2; color: #fff; }
+    .b1:hover { background: #e6c200; }
+    .b2:hover { background: #1565c0; }
+    p { color: #888; font-size: 13px; text-align: center; max-width: 480px; }
+  </style>
+</head>
+<body>
+  <h2>🎲 Ícono — Dominó Real RD</h2>
+  <canvas id="c" width="1024" height="1024"></canvas>
+  <div class="btns">
+    <button class="b1" onclick="descargar('png')">⬇️ Descargar PNG (para Expo)</button>
+    <button class="b2" onclick="descargar('jpeg')">⬇️ Descargar JPEG (para Facebook)</button>
+  </div>
+  <p>Si el botón no funciona: clic derecho sobre el ícono → "Guardar imagen como" → guárdala</p>
+
+<script>
+const cvs = document.getElementById('c');
+const ctx = cvs.getContext('2d');
+const S = 1024;
+
+function rr(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+}
+
+function punto(x, y, r) {
+  const g = ctx.createRadialGradient(x-r*.3, y-r*.3, r*.05, x, y, r);
+  g.addColorStop(0, '#2255AA');
+  g.addColorStop(1, '#001040');
+  ctx.fillStyle = g;
+  ctx.shadowColor = 'rgba(0,0,0,0.6)';
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetY = 2;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+}
+
+const DOTS = {
+  1: [[.5,.5]],
+  2: [[.27,.27],[.73,.73]],
+  3: [[.25,.25],[.5,.5],[.75,.75]],
+  4: [[.27,.27],[.73,.27],[.27,.73],[.73,.73]],
+  5: [[.27,.27],[.73,.27],[.5,.5],[.27,.73],[.73,.73]],
+  6: [[.27,.2],[.73,.2],[.27,.5],[.73,.5],[.27,.8],[.73,.8]]
+};
+
+function puntos(cx, cy, cw, ch, n) {
+  const pr = Math.min(cw,ch) * .09;
+  const pad = Math.min(cw,ch) * .11;
+  (DOTS[n]||[]).forEach(([px,py]) => {
+    punto(cx + pad + px*(cw-pad*2), cy + pad + py*(ch-pad*2), pr);
+  });
+}
+
+function ficha(x, y, w, h, r, n1, n2) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.65)';
+  ctx.shadowBlur  = 35;
+  ctx.shadowOffsetY = 12;
+  const g = ctx.createLinearGradient(x, y, x, y+h);
+  g.addColorStop(0,   '#FEFAF0');
+  g.addColorStop(0.5, '#FFF8E8');
+  g.addColorStop(1,   '#EDE0C4');
+  ctx.fillStyle = g;
+  rr(x, y, w, h, r); ctx.fill();
+  ctx.restore();
+  // borde
+  ctx.strokeStyle = 'rgba(160,120,0,.6)';
+  ctx.lineWidth = 3.5;
+  rr(x+2, y+2, w-4, h-4, r-1); ctx.stroke();
+  // divisor
+  ctx.save();
+  ctx.strokeStyle = 'rgba(90,60,10,.3)';
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([10,6]);
+  ctx.beginPath();
+  ctx.moveTo(x+20, y+h/2);
+  ctx.lineTo(x+w-20, y+h/2);
+  ctx.stroke();
+  ctx.restore();
+  // brillo superior
+  ctx.save();
+  ctx.globalAlpha = .45;
+  const gl = ctx.createLinearGradient(x, y, x, y+h*.35);
+  gl.addColorStop(0, 'rgba(255,255,255,.8)');
+  gl.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = gl;
+  rr(x+4, y+4, w-8, h*.34, r-2); ctx.fill();
+  ctx.restore();
+  // puntos
+  puntos(x, y, w, h/2, n1);
+  puntos(x, y+h/2, w, h/2, n2);
+}
+
+function dibujar() {
+  // fondo
+  ctx.fillStyle = '#001840';
+  rr(0, 0, S, S, 0); ctx.fill();
+
+  // gradiente bandera
+  const bg = ctx.createLinearGradient(0, 0, S, S);
+  bg.addColorStop(0,    '#001F5B');
+  bg.addColorStop(0.42, '#002D7A');
+  bg.addColorStop(0.58, '#9B0020');
+  bg.addColorStop(1,    '#CF142B');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, S, S);
+
+  // brillo radial
+  const glow = ctx.createRadialGradient(S/2, S*0.4, 60, S/2, S*0.4, S*0.62);
+  glow.addColorStop(0,   'rgba(255,255,255,.14)');
+  glow.addColorStop(.55, 'rgba(255,255,255,.03)');
+  glow.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, S, S);
+
+  // fichas decorativas (fondo, semitransparentes)
+  ctx.save(); ctx.globalAlpha = .28;
+  ctx.save(); ctx.translate(108,155); ctx.rotate(-.38);
+  ficha(0, 0, 118, 196, 14, 2, 5); ctx.restore();
+  ctx.save(); ctx.translate(800,140); ctx.rotate(.38);
+  ficha(0, 0, 118, 196, 14, 6, 1); ctx.restore();
+  ctx.save(); ctx.translate(95, 740); ctx.rotate(.22);
+  ficha(0, 0, 108, 180, 13, 4, 3); ctx.restore();
+  ctx.save(); ctx.translate(815,730); ctx.rotate(-.24);
+  ficha(0, 0, 108, 180, 13, 5, 2); ctx.restore();
+  ctx.restore();
+
+  // ficha principal — 6|3
+  ficha(S/2-155, S/2-255, 310, 510, 28, 6, 3);
+
+  // TEXTO  "DOMINÓ"
+  ctx.save();
+  ctx.font = 'bold 88px Arial Black, Arial';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,.9)'; ctx.shadowBlur = 22; ctx.shadowOffsetY = 5;
+  const tg1 = ctx.createLinearGradient(S/2-200, 0, S/2+200, 0);
+  tg1.addColorStop(0,   '#FFE566');
+  tg1.addColorStop(.5,  '#FFD700');
+  tg1.addColorStop(1,   '#FFB300');
+  ctx.fillStyle = tg1;
+  ctx.fillText('DOMINÓ', S/2, 88);
+  ctx.restore();
+
+  // TEXTO "REAL RD"
+  ctx.save();
+  ctx.font = 'bold 54px Arial Black, Arial';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,.85)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 4;
+  const tg2 = ctx.createLinearGradient(S/2-140, 0, S/2+140, 0);
+  tg2.addColorStop(0,   '#FFE566');
+  tg2.addColorStop(.5,  '#FFD700');
+  tg2.addColorStop(1,   '#FFB300');
+  ctx.fillStyle = tg2;
+  ctx.fillText('REAL RD', S/2, 158);
+  ctx.restore();
+
+  // emoji bandera
+  ctx.save();
+  ctx.font = '60px serif';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 12;
+  ctx.fillText('🇩🇴', S/2, S-80);
+  ctx.restore();
+
+  // borde dorado exterior
+  ctx.strokeStyle = 'rgba(255,215,0,.6)';
+  ctx.lineWidth = 10;
+  rr(6, 6, S-12, S-12, 0); ctx.stroke();
+  // borde blanco interior sutil
+  ctx.strokeStyle = 'rgba(255,255,255,.09)';
+  ctx.lineWidth = 3;
+  rr(20, 20, S-40, S-40, 0); ctx.stroke();
+}
+
+dibujar();
+
+function descargar(tipo) {
+  const mime = tipo === 'jpeg' ? 'image/jpeg' : 'image/png';
+  const ext  = tipo === 'jpeg' ? 'jpg' : 'png';
+  const nombre = `icono-domino-real-rd-1024.${ext}`;
+  // Para JPEG necesitamos fondo blanco (no transparente)
+  if (tipo === 'jpeg') {
+    const tmp = document.createElement('canvas');
+    tmp.width = tmp.height = 1024;
+    const t = tmp.getContext('2d');
+    t.fillStyle = '#002D62';
+    t.fillRect(0, 0, 1024, 1024);
+    t.drawImage(cvs, 0, 0);
+    const a = document.createElement('a');
+    a.download = nombre;
+    a.href = tmp.toDataURL(mime, 0.97);
+    a.click();
+  } else {
+    const a = document.createElement('a');
+    a.download = nombre;
+    a.href = cvs.toDataURL(mime);
+    a.click();
+  }
+}
+</script>
+</body>
+</html>

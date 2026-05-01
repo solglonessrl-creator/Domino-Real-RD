@@ -265,7 +265,7 @@ const LoginScreen = ({ onLogin, onRegistro, onInvitado, onFacebook, onGoogle }) 
         width: '100%', maxWidth: 380, border: '1px solid rgba(255,255,255,0.1)'
       }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 60, marginBottom: 10 }}>🎲</div>
+          <div style={{ fontSize: 60, marginBottom: 10, color: '#FFF' }}>🁣</div>
           <div style={{ color: '#FFF', fontSize: 24, fontWeight: 'bold', letterSpacing: 1 }}>
             Dominó Real RD
           </div>
@@ -347,7 +347,7 @@ const LoginScreen = ({ onLogin, onRegistro, onInvitado, onFacebook, onGoogle }) 
         }}>
           {cargando
             ? (esRegistro ? '⏳ Creando cuenta...' : '⏳ Entrando...')
-            : (esRegistro ? '✨ Crear cuenta' : '🎲 Entrar a Jugar')}
+            : (esRegistro ? '✨ Crear cuenta' : '🁣 Entrar a Jugar')}
         </button>
 
         {/* Toggle Login <-> Registro */}

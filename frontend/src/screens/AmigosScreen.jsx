@@ -12,7 +12,7 @@ const COLORES = {
 };
 
 const ESTADO_COLOR = { conectado: '#4CAF50', en_juego: '#FF6D00', desconectado: '#666' };
-const ESTADO_LABEL = { conectado: '● En línea', en_juego: '🎲 En partida', desconectado: '○ Desconectado' };
+const ESTADO_LABEL = { conectado: '● En línea', en_juego: '🁣 En partida', desconectado: '○ Desconectado' };
 
 const TarjetaAmigo = ({ amigo, onInvitar, onVerPerfil }) => (
   <div style={{
@@ -64,7 +64,7 @@ const TarjetaAmigo = ({ amigo, onInvitar, onVerPerfil }) => (
           border: 'none', borderRadius: 10, color: COLORES.blanco,
           fontSize: 12, fontWeight: 'bold', cursor: 'pointer'
         }}>
-          🎲 Invitar
+          🁣 Invitar
         </button>
       )}
     </div>

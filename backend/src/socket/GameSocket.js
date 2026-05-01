@@ -254,7 +254,7 @@ function initGameSocket(io) {
       // ── ANTI-TRAMPA: chat solo durante barajado ──────────────
       if (!sala.chatHabilitado) {
         socket.emit('chat_error', {
-          error: '🎲 El chat se habilita mientras se barajan las fichas entre manos'
+          error: '🁣 El chat se habilita mientras se barajan las fichas entre manos'
         });
         return;
       }
@@ -732,19 +732,40 @@ function ejecutarTurnoIA(io, roomId, sala, jugadorId) {
   let resultado;
   if (!decision) {
     resultado = engine.pasarTurno(sala.estado, jugadorId);
-    sala.estado = resultado.estado;
+    
+    // Protección contra desincronía IA/Engine
+    if (!resultado.exito && jugadasValidas && jugadasValidas.length > 0) {
+      console.warn(`[IA] Bot ${jugadorId} falló al decidir pero tenía jugadas. Forzando jugada 0.`);
+      const fallback = jugadasValidas[0];
+      resultado = engine.ejecutarJugada(sala.estado, jugadorId, fallback.ficha, fallback.lado);
+      sala.estado = resultado.estado;
+      
+      const esDomino = sala.estado.estado === 'terminada';
+      const esCapicua = sala.estado.resultado?.capicua;
+      const narracion = arbitro.narrarJugada(
+        { ficha: resultado.jugada, lado: fallback.lado, jugadorId, capicua: esCapicua, esDomino },
+        sala.estado,
+        Object.values(sala.jugadores)
+      );
+      io.to(roomId).emit('game_state', {
+        estado: estadoPublico(sala.estado),
+        narracion,
+        alertas: arbitro.verificarAlertas(sala.estado)
+      });
+    } else {
+      sala.estado = resultado.estado || sala.estado;
+      const narracion = arbitro.narrarJugada(
+        { tipo: 'paso', jugadorId },
+        sala.estado,
+        Object.values(sala.jugadores)
+      );
 
-    const narracion = arbitro.narrarJugada(
-      { tipo: 'paso', jugadorId },
-      sala.estado,
-      Object.values(sala.jugadores)
-    );
-
-    io.to(roomId).emit('game_state', {
-      estado:  estadoPublico(sala.estado),
-      narracion,
-      alertas: arbitro.verificarAlertas(sala.estado)
-    });
+      io.to(roomId).emit('game_state', {
+        estado:  estadoPublico(sala.estado),
+        narracion,
+        alertas: arbitro.verificarAlertas(sala.estado)
+      });
+    }
   } else {
     resultado = engine.ejecutarJugada(sala.estado, jugadorId, decision.ficha, decision.lado);
     if (resultado.exito) {

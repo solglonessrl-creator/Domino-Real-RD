@@ -20,6 +20,31 @@ const CATEGORIAS = [
   { id: 'paquetes_monedas',nombre: 'Monedas', icono: '🪙' }
 ];
 
+const CATALOGO_FALLBACK = {
+  mesas: [
+    { id: 'mesa_clasica', nombre: 'Mesa Clásica', descripcion: 'Mesa verde tradicional dominicana', precio: 0, moneda: 'gratis' },
+    { id: 'mesa_rd', nombre: 'Mesa Bandera RD', descripcion: 'Azul, rojo y blanco. Orgullo dominicano', precio: 1500, moneda: 'coins' },
+    { id: 'mesa_diamante', nombre: 'Mesa Diamante', descripcion: 'Para los maestros', precio: 5000, moneda: 'coins', exclusivaTorneo: true }
+  ],
+  fichas: [
+    { id: 'fichas_clasicas', nombre: 'Fichas Clásicas', descripcion: 'Marfil tradicional', precio: 0, moneda: 'gratis' },
+    { id: 'fichas_negras', nombre: 'Fichas Negras', descripcion: 'Elegantes fichas negras', precio: 1000, moneda: 'coins' },
+    { id: 'fichas_diamante', nombre: 'Fichas Diamante', descripcion: 'Brillantes', precio: 3500, moneda: 'coins' }
+  ],
+  avatares: [
+    { id: 'avatar_default', nombre: 'Avatar Básico', precio: 0, moneda: 'gratis' },
+    { id: 'avatar_rd', nombre: 'Orgullo Dominicano', descripcion: 'Con bandera RD', precio: 1500, moneda: 'coins' }
+  ],
+  vip: {
+    id: 'vip_mensual', nombre: 'VIP Dominó Real RD', precio: 4.99, moneda: 'usd', duracion: '1 mes',
+    beneficios: ['Sin anuncios','Mesa VIP','+20% monedas']
+  },
+  paquetes_monedas: [
+    { id: 'pack_100', monedas: 100, precio: 0.99, bonus: 0 },
+    { id: 'pack_5000', monedas: 5000, precio: 24.99, bonus: 1000, etiqueta: '🔥 Más Popular' }
+  ]
+};
+
 const ItemTienda = ({ item, onComprar, tengo }) => {
   const esGratis = item.precio === 0 || item.moneda === 'gratis';
   const esExclusivo = item.moneda === 'exclusivo_torneo';
@@ -56,9 +81,9 @@ const ItemTienda = ({ item, onComprar, tengo }) => {
         height: 100,
         background: `linear-gradient(135deg, ${COLORES.grisOscuro}, ${COLORES.grisMedio})`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 48
+        fontSize: 48, color: COLORES.blanco
       }}>
-        {item.preview ? '🟩' : item.icono || '🎲'}
+        {item.preview ? '🟩' : item.icono || '🁣'}
       </div>
 
       {/* Info */}
@@ -132,9 +157,10 @@ const TiendaScreen = ({ jugador, onVolver }) => {
   const cargarCatalogo = async () => {
     try {
       const resp = await TiendaAPI.catalogo();
-      setCatalogo(resp.catalogo);
+      setCatalogo(resp.catalogo || CATALOGO_FALLBACK);
     } catch (err) {
       console.error('Error cargando tienda:', err);
+      setCatalogo(CATALOGO_FALLBACK);
     } finally {
       setCargando(false);
     }

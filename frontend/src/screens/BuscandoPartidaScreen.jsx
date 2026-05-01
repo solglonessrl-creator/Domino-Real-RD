@@ -98,13 +98,12 @@ const BuscandoPartidaScreen = ({ jugador, modo = 'rapido', onPartidaEncontrada, 
           borderBottomColor: COLORES.rojoRD,
           animation: 'girar 2s linear infinite reverse'
         }} />
-        {/* Centro */}
         <div style={{
           position: 'absolute', inset: 32,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 52
+          fontSize: 64, color: COLORES.blanco, transform: 'rotate(45deg)'
         }}>
-          🎲
+          🁣
         </div>
       </div>
 

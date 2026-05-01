@@ -257,22 +257,33 @@ const ManoJugador = ({ fichas, fichaSeleccionada, onSeleccionar, puedePasar, onP
       ))}
     </div>
 
+    {puedePasar && (
+      <div style={{
+        color: COLORES.rojoRD, fontSize: 16, fontWeight: 'bold',
+        animation: 'pulse 1s infinite', marginTop: 4, textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+      }}>
+        ⚠️ No tienes fichas válidas. ¡Debes pasar! ⚠️
+      </div>
+    )}
+
     <div style={{ display: 'flex', gap: 12 }}>
       {puedePasar && (
         <button
           onClick={onPasar}
           style={{
-            padding: '10px 24px',
+            padding: '12px 32px',
             backgroundColor: COLORES.rojoRD,
             color: COLORES.blanco,
-            border: 'none',
-            borderRadius: 20,
-            fontSize: 14,
+            border: `2px solid ${COLORES.blanco}`,
+            borderRadius: 24,
+            fontSize: 16,
             fontWeight: 'bold',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            boxShadow: `0 4px 12px rgba(255,0,0,0.4)`,
+            animation: 'pulse 1.5s infinite'
           }}
         >
-          ⏭️ Pasar
+          ⏭️ Pasar Turno
         </button>
       )}
 
@@ -510,7 +521,7 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
         fontSize: 20
       }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🎲</div>
+          <div style={{ fontSize: 48, marginBottom: 16, color: COLORES.blanco }}>🁣</div>
           <div>Conectando a la partida...</div>
           <div style={{ fontSize: 14, color: COLORES.blanco + '60', marginTop: 8 }}>
             Esperando jugadores...
@@ -562,13 +573,25 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
             cursor: 'pointer'
           }}
         >
-          🎲 Jugar de Nuevo
+          🁣 Jugar de Nuevo
         </button>
       </div>
     );
   }
 
   const esMiTurno = estado.turno === jugadorId;
+
+  const tieneJugadaValida = useMemo(() => {
+    if (!esMiTurno || !estado || !manoPrivada) return false;
+    if (estado.mesa?.length === 0) return true; 
+    
+    return manoPrivada.some(ficha => 
+      ficha.izquierda === estado.extremoIzquierdo || 
+      ficha.derecha === estado.extremoIzquierdo ||
+      ficha.izquierda === estado.extremoDerecho || 
+      ficha.derecha === estado.extremoDerecho
+    );
+  }, [esMiTurno, estado, manoPrivada]);
 
   return (
     <div style={{
@@ -662,7 +685,7 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
               textAlign: 'center',
               fontWeight: 'bold'
             }}>
-              🎲 Esperando primera ficha...
+              🁣 Esperando primera ficha...
             </div>
           )}
         </div>
@@ -775,18 +798,17 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
                 fontSize: 16, fontWeight: 'bold', cursor: 'pointer'
               }}
             >
-              🎲 ¡Abrir con {fichaSeleccionada.id}!
+              🁣 ¡Abrir con {fichaSeleccionada.id}!
             </button>
           </div>
         )}
       </div>
 
-      {/* Mano del jugador */}
       <ManoJugador
         fichas={manoPrivada}
         fichaSeleccionada={fichaSeleccionada}
-        onSeleccionar={esMiTurno ? handleSeleccionarFicha : null}
-        puedePasar={esMiTurno && manoPrivada?.length > 0}
+        onSeleccionar={esMiTurno && tieneJugadaValida ? handleSeleccionarFicha : null}
+        puedePasar={esMiTurno && !tieneJugadaValida}
         onPasar={handlePasar}
         onPedirConsejo={handlePedirConsejo}
       />
