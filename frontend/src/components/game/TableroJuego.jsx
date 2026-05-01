@@ -561,7 +561,10 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
           </span>
         </div>
         <button
-          onClick={() => window.location.href = '/'}
+          onClick={() => {
+            if (socket) socket.emit('leave_room', { roomId });
+            if (typeof window !== 'undefined') window.location.reload();
+          }}
           style={{
             padding: '14px 32px',
             backgroundColor: COLORES.oro,

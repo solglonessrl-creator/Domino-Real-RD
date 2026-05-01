@@ -22,26 +22,28 @@ const CATEGORIAS = [
 
 const CATALOGO_FALLBACK = {
   mesas: [
-    { id: 'mesa_clasica', nombre: 'Mesa Clásica', descripcion: 'Mesa verde tradicional dominicana', precio: 0, moneda: 'gratis' },
-    { id: 'mesa_rd', nombre: 'Mesa Bandera RD', descripcion: 'Azul, rojo y blanco. Orgullo dominicano', precio: 1500, moneda: 'coins' },
-    { id: 'mesa_diamante', nombre: 'Mesa Diamante', descripcion: 'Para los maestros', precio: 5000, moneda: 'coins', exclusivaTorneo: true }
+    { id: 'mesa_clasica', nombre: 'Mesa Clásica', descripcion: 'Mesa verde tradicional dominicana', precio: 0, moneda: 'gratis', bgPreview: 'linear-gradient(to bottom, #1B5E20, #003300)', iconPreview: '🟩' },
+    { id: 'mesa_rd', nombre: 'Mesa Bandera RD', descripcion: 'Azul, rojo y blanco. Orgullo dominicano', precio: 1500, moneda: 'coins', bgPreview: 'linear-gradient(135deg, #002D62 33%, #FFFFFF 33%, #FFFFFF 66%, #CF142B 66%)', iconPreview: '🇩🇴' },
+    { id: 'mesa_diamante', nombre: 'Mesa Diamante', descripcion: 'Para los maestros', precio: 5000, moneda: 'coins', exclusivaTorneo: true, bgPreview: 'linear-gradient(135deg, #1A237E, #3949AB)', iconPreview: '💎' }
   ],
   fichas: [
-    { id: 'fichas_clasicas', nombre: 'Fichas Clásicas', descripcion: 'Marfil tradicional', precio: 0, moneda: 'gratis' },
-    { id: 'fichas_negras', nombre: 'Fichas Negras', descripcion: 'Elegantes fichas negras', precio: 1000, moneda: 'coins' },
-    { id: 'fichas_diamante', nombre: 'Fichas Diamante', descripcion: 'Brillantes', precio: 3500, moneda: 'coins' }
+    { id: 'fichas_clasicas', nombre: 'Fichas Clásicas', descripcion: 'Marfil tradicional', precio: 0, moneda: 'gratis', bgPreview: 'linear-gradient(135deg, #EEEEEE, #FFFFFF)', iconPreview: '🁣', colorPreview: '#111' },
+    { id: 'fichas_negras', nombre: 'Fichas Negras', descripcion: 'Elegantes fichas negras', precio: 1000, moneda: 'coins', bgPreview: 'linear-gradient(135deg, #424242, #0A0A0A)', iconPreview: '🁣', colorPreview: '#FFF' },
+    { id: 'fichas_diamante', nombre: 'Fichas Diamante', descripcion: 'Fichas brillantes de torneo', precio: 3500, moneda: 'coins', bgPreview: 'linear-gradient(135deg, #E0F7FA, #80DEEA)', iconPreview: '🁣', colorPreview: '#006064' }
   ],
   avatares: [
-    { id: 'avatar_default', nombre: 'Avatar Básico', precio: 0, moneda: 'gratis' },
-    { id: 'avatar_rd', nombre: 'Orgullo Dominicano', descripcion: 'Con bandera RD', precio: 1500, moneda: 'coins' }
+    { id: 'avatar_default', nombre: 'Avatar Básico', precio: 0, moneda: 'gratis', iconPreview: '👤', bgPreview: 'linear-gradient(to bottom, #333, #111)' },
+    { id: 'avatar_rd', nombre: 'Orgullo Dominicano', descripcion: 'Sangre de campeón', precio: 1500, moneda: 'coins', iconPreview: '🤴🏽', bgPreview: 'linear-gradient(135deg, #002D62 50%, #CF142B 50%)' },
+    { id: 'avatar_rey', nombre: 'El Patrón', descripcion: 'El rey de la mesa', precio: 5000, moneda: 'coins', iconPreview: '👑', bgPreview: 'radial-gradient(circle, #FFD700, #F57F17)' }
   ],
   vip: {
     id: 'vip_mensual', nombre: 'VIP Dominó Real RD', precio: 4.99, moneda: 'usd', duracion: '1 mes',
-    beneficios: ['Sin anuncios','Mesa VIP','+20% monedas']
+    beneficios: ['Sin anuncios', 'Mesa VIP Exclusiva', '+20% monedas por partida'],
+    iconPreview: '🌟', bgPreview: 'linear-gradient(45deg, #FFD700, #FFA000)'
   },
   paquetes_monedas: [
-    { id: 'pack_100', monedas: 100, precio: 0.99, bonus: 0 },
-    { id: 'pack_5000', monedas: 5000, precio: 24.99, bonus: 1000, etiqueta: '🔥 Más Popular' }
+    { id: 'pack_100', monedas: 100, precio: 0.99, bonus: 0, iconPreview: '🪙', bgPreview: 'linear-gradient(135deg, #2C2C54, #1A1A2E)' },
+    { id: 'pack_5000', monedas: 5000, precio: 24.99, bonus: 1000, etiqueta: '🔥 Más Popular', iconPreview: '💰', bgPreview: 'linear-gradient(135deg, #4CAF50, #1B5E20)' }
   ]
 };
 
@@ -78,12 +80,14 @@ const ItemTienda = ({ item, onComprar, tengo }) => {
 
       {/* Preview */}
       <div style={{
-        height: 100,
-        background: `linear-gradient(135deg, ${COLORES.grisOscuro}, ${COLORES.grisMedio})`,
+        height: 120,
+        background: item.bgPreview || `linear-gradient(135deg, ${COLORES.grisOscuro}, ${COLORES.grisMedio})`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 48, color: COLORES.blanco
+        fontSize: 64, color: item.colorPreview || COLORES.blanco,
+        textShadow: item.bgPreview ? '0px 4px 12px rgba(0,0,0,0.4)' : 'none',
+        boxShadow: 'inset 0 -10px 20px rgba(0,0,0,0.3)'
       }}>
-        {item.preview ? '🟩' : item.icono || '🁣'}
+        {item.iconPreview || item.icono || '🁣'}
       </div>
 
       {/* Info */}
