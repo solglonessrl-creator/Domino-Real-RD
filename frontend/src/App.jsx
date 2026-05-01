@@ -14,6 +14,35 @@ import TorneosScreen from './screens/TorneosScreen';
 import AmigosScreen from './screens/AmigosScreen';
 import { conectarSocket, AuthAPI, MatchmakingAPI } from './services/socket';
 
+// Error Boundary para evitar pantallazo azul
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, errorInfo: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, errorInfo: error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 20, color: 'white', backgroundColor: '#CF142B', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif' }}>
+          <h2>Algo salió mal al renderizar la interfaz.</h2>
+          <p style={{ color: '#FFD700' }}>Por favor envíale este error a tu asistente IA:</p>
+          <pre style={{ backgroundColor: '#000', padding: 10, borderRadius: 8, whiteSpace: 'pre-wrap', maxWidth: '90%' }}>
+            {this.state.errorInfo && this.state.errorInfo.toString()}
+          </pre>
+          <button onClick={() => window.location.reload()} style={{ marginTop: 20, padding: 10, cursor: 'pointer', borderRadius: 8, border: 'none', backgroundColor: '#002D62', color: 'white', fontWeight: 'bold' }}>Recargar Aplicación</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const App = () => {
   const [pantalla, setPantalla] = useState('login');
   const [jugador, setJugador] = useState(null);
@@ -138,9 +167,12 @@ const App = () => {
   const volver = () => setPantalla('home');
 
   // ── ROUTER ──────────────────────────────────────────────────
-  switch (pantalla) {
-    case 'login':
-      return (
+  return (
+    <ErrorBoundary>
+      {(() => {
+        switch (pantalla) {
+          case 'login':
+            return (
         <LoginScreen
           onLogin={handleLogin}
           onRegistro={handleRegistro}
@@ -208,7 +240,10 @@ const App = () => {
           </button>
         </div>
       );
-  }
+      }
+    })()}
+    </ErrorBoundary>
+  );
 };
 
 const LoginScreen = ({ onLogin, onRegistro, onInvitado, onFacebook, onGoogle }) => {
