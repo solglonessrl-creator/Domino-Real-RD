@@ -509,6 +509,20 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
     socket?.emit('send_reaction', { roomId, emoji });
   }, [socket, roomId]);
 
+  const esMiTurno = estado?.turno === jugadorId;
+
+  const tieneJugadaValida = useMemo(() => {
+    if (!esMiTurno || !estado || !manoPrivada) return false;
+    if (estado.mesa?.length === 0) return true; 
+    
+    return manoPrivada.some(ficha => 
+      ficha.izquierda === estado.extremoIzquierdo || 
+      ficha.derecha === estado.extremoIzquierdo ||
+      ficha.izquierda === estado.extremoDerecho || 
+      ficha.derecha === estado.extremoDerecho
+    );
+  }, [esMiTurno, estado, manoPrivada]);
+
   if (!estado) {
     return (
       <div style={{
@@ -581,20 +595,6 @@ const TableroJuego = ({ socket, roomId, jugadorId, jugadores }) => {
       </div>
     );
   }
-
-  const esMiTurno = estado.turno === jugadorId;
-
-  const tieneJugadaValida = useMemo(() => {
-    if (!esMiTurno || !estado || !manoPrivada) return false;
-    if (estado.mesa?.length === 0) return true; 
-    
-    return manoPrivada.some(ficha => 
-      ficha.izquierda === estado.extremoIzquierdo || 
-      ficha.derecha === estado.extremoIzquierdo ||
-      ficha.izquierda === estado.extremoDerecho || 
-      ficha.derecha === estado.extremoDerecho
-    );
-  }, [esMiTurno, estado, manoPrivada]);
 
   return (
     <div style={{
